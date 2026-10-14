@@ -1,0 +1,390 @@
+_note: First 3 sites chosen for regime contrast (see their 'why'); the remaining 12 were added by stratified
+  sampling (basin size x state) from data/expansion_candidates.csv and filtered on last-year data quality
+  (data/expansion_profile.csv). Roles marked 'tbd' are assigned from measured flashiness after the pull.
+parameters:
+  target: '00300'
+  covariates:
+    '00010': temp
+    00095: spcond
+    '63680': turb
+    '00060': discharge
+resolution_minutes: 15
+sites:
+- id: USGS-03293500
+  name: M Fk Beargrass Cr At Lexington Rd At Louisville,Ky
+  state: Kentucky
+  role: flashy_urban
+  drainage_sqmi: 24.8
+  do_begin: '1996-07-15'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.945
+    provisional_frac: 0.267
+    frac_do_lt_5: 0.0964
+    frac_do_lt_2: 0.0031
+    richards_baker_flashiness: 0.744
+  why: Highest flashiness among sites with real low-DO events (about 10% of readings below 5 mg/L); urban
+    Louisville basin; 94% complete.
+  regime: flashy
+  history:
+    do_years: 5.0
+    do_observed: 0.973
+    discharge_observed: 0.975
+    richards_baker_2y: 0.875
+- id: USGS-02344630
+  name: Line Creek Blw Lake Mcintosh, Nr Peachtree City,Ga
+  state: Georgia
+  role: regulated
+  drainage_sqmi: 69.4
+  do_begin: '2008-05-20'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.995
+    provisional_frac: 0.191
+    frac_do_lt_5: 0.0505
+    frac_do_lt_2: 0.0
+    richards_baker_flashiness: 0.516
+  why: Stream just below Lake McIntosh, so release timing shapes temperature and DO; about 5% of readings
+    below 5 mg/L; 99.5% complete.
+  regime: flashy
+  history:
+    do_years: 5.0
+    do_observed: 0.911
+    discharge_observed: 0.986
+    richards_baker_2y: 0.515
+- id: USGS-08065350
+  name: Trinity Rv nr Crockett, TX
+  state: Texas
+  role: slow_river
+  drainage_sqmi: 13911.0
+  do_begin: '1975-03-11'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.964
+    provisional_frac: 0.414
+    frac_do_lt_5: 0.032
+    frac_do_lt_2: 0.0006
+    richards_baker_flashiness: 0.214
+  why: Large, low-flashiness river (about 13,900 sq mi) with the longest DO record of the three (since
+    1975); about 3% of readings below 5 mg/L; 96% complete.
+  regime: steady
+  history:
+    do_years: 5.0
+    do_observed: 0.858
+    discharge_observed: 0.978
+    richards_baker_2y: 0.162
+- id: USGS-02336313
+  name: Woodall Creek At Defoors Ferry Rd, At Atlanta, Ga
+  state: Georgia
+  role: flashy
+  drainage_sqmi: 2.71
+  do_begin: '2004-12-22'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.998
+    provisional_frac: 0.36
+    frac_do_lt_5: 0.0493
+    frac_do_lt_2: 0.0
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: flashy
+  history:
+    do_years: 5.0
+    do_observed: 0.981
+    discharge_observed: 0.961
+    richards_baker_2y: 1.074
+- id: USGS-02110400
+  name: Buck Creek Near Longs, Sc
+  state: South Carolina
+  role: no_discharge
+  drainage_sqmi: 46.9
+  do_begin: '2005-10-01'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.982
+    provisional_frac: 0.62
+    frac_do_lt_5: 0.1137
+    frac_do_lt_2: 0.0048
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: no_discharge
+  history:
+    do_years: 5.0
+    do_observed: 0.993
+    discharge_observed: 0.0
+    richards_baker_2y: null
+- id: USGS-10133650
+  name: E Canyon Cr Bl I-80 Rest Stop Nr Park City, Ut
+  state: Utah
+  role: steady
+  drainage_sqmi: 42.1
+  do_begin: '2010-05-18'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.968
+    provisional_frac: 0.16
+    frac_do_lt_5: 0.0314
+    frac_do_lt_2: 0.0
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: steady
+  history:
+    do_years: 5.0
+    do_observed: 0.971
+    discharge_observed: 0.891
+    richards_baker_2y: 0.126
+- id: USGS-01654500
+  name: Long Branch Near Annandale, Va
+  state: Virginia
+  role: flashy
+  drainage_sqmi: 3.72
+  do_begin: '2013-02-08'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.96
+    provisional_frac: 0.49
+    frac_do_lt_5: 0.0124
+    frac_do_lt_2: 0.0
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: flashy
+  history:
+    do_years: 5.0
+    do_observed: 0.917
+    discharge_observed: 0.947
+    richards_baker_2y: 1.11
+- id: USGS-05576195
+  name: Sugar Creek Near Chatham, Il
+  state: Illinois
+  role: no_discharge
+  drainage_sqmi: 90.43
+  do_begin: '2015-06-13'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.993
+    provisional_frac: 0.76
+    frac_do_lt_5: 0.3337
+    frac_do_lt_2: 0.08
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: no_discharge
+  history:
+    do_years: 4.81
+    do_observed: 0.977
+    discharge_observed: 0.0
+    richards_baker_2y: null
+- id: USGS-02110704
+  name: Waccamaw River At Conway Marina At Conway, Sc
+  state: South Carolina
+  role: no_discharge
+  drainage_sqmi: 1440.0
+  do_begin: '1994-10-01'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.925
+    provisional_frac: 1.0
+    frac_do_lt_5: 0.2166
+    frac_do_lt_2: 0.0006
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: no_discharge
+  history:
+    do_years: 5.0
+    do_observed: 0.976
+    discharge_observed: 0.0
+    richards_baker_2y: null
+- id: USGS-08068000
+  name: W Fk San Jacinto Rv nr Conroe, TX
+  state: Texas
+  role: moderate
+  drainage_sqmi: 828.0
+  do_begin: '2014-02-06'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.999
+    provisional_frac: 0.28
+    frac_do_lt_5: 0.028
+    frac_do_lt_2: 0.0
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: moderate
+  history:
+    do_years: 5.0
+    do_observed: 0.971
+    discharge_observed: 0.994
+    richards_baker_2y: 0.44
+- id: USGS-07143672
+  name: L Arkansas R At Hwy 50 Nr Halstead, Ks
+  state: Kansas
+  role: flashy
+  drainage_sqmi: 759.0
+  do_begin: '2007-02-27'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.842
+    provisional_frac: 0.3
+    frac_do_lt_5: 0.0292
+    frac_do_lt_2: 0.0
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: flashy
+  history:
+    do_years: 5.0
+    do_observed: 0.644
+    discharge_observed: 0.938
+    richards_baker_2y: 0.589
+- id: USGS-03290500
+  name: Kentucky River At Lock 2 At Lockport, Ky
+  state: Kentucky
+  role: moderate
+  drainage_sqmi: 6180.0
+  do_begin: '2018-10-11'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.983
+    provisional_frac: 0.75
+    frac_do_lt_5: 0.0324
+    frac_do_lt_2: 0.0
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: moderate
+  history:
+    do_years: 5.0
+    do_observed: 0.965
+    discharge_observed: 0.994
+    richards_baker_2y: 0.235
+- id: USGS-01184000
+  name: Connecticut River At Thompsonville, Ct
+  state: Connecticut
+  role: steady
+  drainage_sqmi: 9660.0
+  do_begin: '2019-08-02'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.998
+    provisional_frac: 1.0
+    frac_do_lt_5: 0.0247
+    frac_do_lt_2: 0.0
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: steady
+  history:
+    do_years: 5.0
+    do_observed: 0.996
+    discharge_observed: 0.94
+    richards_baker_2y: 0.169
+- id: USGS-08211200
+  name: Nueces Rv at Bluntzer, TX
+  state: Texas
+  role: moderate
+  drainage_sqmi: 16611.0
+  do_begin: '2008-11-05'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.959
+    provisional_frac: 1.0
+    frac_do_lt_5: 0.0197
+    frac_do_lt_2: 0.0
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: moderate
+  history:
+    do_years: 5.0
+    do_observed: 0.971
+    discharge_observed: 0.999
+    richards_baker_2y: 0.273
+alternates:
+- id: USGS-02336526
+  role: flashy_urban
+  note: 'Proctor Creek, Atlanta: flashier (0.96) but almost no low-DO events.'
+- id: USGS-08317400
+  role: regulated
+  note: 'Rio Grande below Cochiti Dam: strongest regulation (0.075) but no low-DO events and 78% provisional.'
+- id: USGS-07061290
+  role: regulated
+  note: 'E. Fk. Black R. below Lower Taum Sauk Reservoir (pumped storage): similar event rate.'
+- id: USGS-03185400
+  role: slow_river
+  note: 'New River at Thurmond, WV: clean slow river but no low-DO events.'
+excluded:
+- id: USGS-03432100
+  name: Harpeth River At Mcdaniel, Tn
+  state: Tennessee
+  role: flashy
+  drainage_sqmi: 66.6
+  do_begin: '2014-08-15'
+  companions:
+  - discharge
+  - spcond
+  - temp
+  - turb
+  last_year:
+    do_completeness: 0.773
+    provisional_frac: 0.77
+    frac_do_lt_5: 0.249
+    frac_do_lt_2: 0.0656
+  why: 'Added for the cross-site expansion: stratified by basin size and region; selected for >=85% DO
+    completeness at 15-min resolution and 1-35% of readings below 5 mg/L.'
+  regime: flashy
+  history:
+    do_years: 1.85
+    do_observed: 0.812
+    discharge_observed: 0.992
+    richards_baker_2y: 0.642
+  exclusion_reason: only 1.8 years of DO history; a 2-year test window needs training data before it
