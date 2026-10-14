@@ -22,8 +22,7 @@ import yaml
 
 from dosentinel.detect import interval_score, threshold_at_rate
 from dosentinel.faults import inject_drifts
-from dosentinel.features import (base_features, horizon_features, load_site_frame, long_lag_features,
-                                 train_origin_mask)
+from dosentinel.features import base_features, horizon_features, load_site_frame, long_lag_features, train_origin_mask
 from dosentinel.models import fit_predict_quantiles
 
 WINDOWS_H = (24, 72, 168)

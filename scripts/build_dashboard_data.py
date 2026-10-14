@@ -4,7 +4,7 @@
 
 Replay: real forecasts from models/*.joblib at every 6th hour over the last 30 days, for all
 sites, plus hourly observed DO around that window. Evidence: tables read from results/.
-Writes reports/dashboard/data.json.
+Writes dashboard/data.json.
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from dosentinel.serving import forecast  # noqa: E402
 from dosentinel.stats import skill_ci  # noqa: E402
 
 R = Path("results")
-OUT = Path("reports/dashboard")
+OUT = Path("dashboard")
 OUT.mkdir(parents=True, exist_ok=True)
 HOURS = [1, 3, 6, 12, 24]
 FLAG_KEYS = ["rules", "flatline", "jump_persistence", "jump_interval_1h", "latest_value_missing"]
@@ -122,7 +122,9 @@ def main() -> None:
     ab = pd.read_csv(R / "alert_budget_summary.csv")
     abm = ab[ab.family.isin(["model", "naive"])].pivot_table(index="budget", columns="family", values="recall", aggfunc="mean")
     ev, nu = pd.read_csv(R / "drift_events.csv"), pd.read_csv(R / "drift_events_null.csv")
-    pick = lambda t: t[(t.detector == "interval_1h") & (t.threshold_type == "oracle")].groupby("duration_days").detected.mean()
+    def pick(t: pd.DataFrame) -> pd.Series:
+        return t[(t.detector == "interval_1h") & (t.threshold_type == "oracle")].groupby("duration_days").detected.mean()
+
     fe = pd.read_csv(R / "faults_events.csv")
     fk = fe[fe.detector.isin(["interval_1h", "run_length"])].groupby(["detector", "kind"]).detected.mean().unstack()
     wk_ = pd.read_csv(R / "weather_realistic_ablate_weekly.csv")

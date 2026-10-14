@@ -17,8 +17,7 @@ import pandas as pd
 import yaml
 
 from dosentinel.baselines import BASELINES, HORIZONS_H
-from dosentinel.evaluate import (evaluation_table, event_table, skill_table, storm_state,
-                                 walk_forward_folds)
+from dosentinel.evaluate import evaluation_table, event_table, skill_table, storm_state, walk_forward_folds
 from dosentinel.features import base_features, horizon_features, load_site_frame, train_origin_mask
 from dosentinel.models import fit_predict_quantiles
 

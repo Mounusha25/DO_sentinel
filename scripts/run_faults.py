@@ -19,8 +19,16 @@ import yaml
 from sklearn.metrics import roc_auc_score
 
 from dosentinel.baselines import persistence_diel_delta
-from dosentinel.detect import (interval_score, persistence_residual_online, persistence_residual_score,
-                               residual_score, robust_scale, rules_flag, run_length, threshold_at_rate)
+from dosentinel.detect import (
+    interval_score,
+    persistence_residual_online,
+    persistence_residual_score,
+    residual_score,
+    robust_scale,
+    rules_flag,
+    run_length,
+    threshold_at_rate,
+)
 from dosentinel.faults import inject_faults
 from dosentinel.features import base_features, horizon_features, load_site_frame, train_origin_mask
 from dosentinel.models import fit_predict_quantiles
@@ -93,7 +101,6 @@ def run_site(sid: str, role: str, clean_dir: str, fpr: float, seed: int, counts:
     flags["persistence_resid_es"] = es["flag"]
 
     # ---- evaluate on the test year
-    pos = np.arange(len(idx))
     in_test = test_rows
     near = np.zeros(len(idx), bool)
     for e in events:

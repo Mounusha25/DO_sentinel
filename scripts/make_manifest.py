@@ -12,7 +12,7 @@ import argparse
 import hashlib
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -54,7 +54,7 @@ def main() -> None:
         for x in bad[:10]:
             print("  changed:", x)
         sys.exit(1 if bad or missing else 0)
-    out = {"created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    out = {"created": datetime.now(UTC).isoformat(timespec="seconds"),
            "source": "USGS OGC API (api.waterdata.usgs.gov) continuous collection; Open-Meteo archive and previous-runs APIs",
            "files": {str(p): describe(p) for p in files}}
     MANIFEST.write_text(json.dumps(out, indent=1))

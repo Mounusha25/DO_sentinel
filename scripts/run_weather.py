@@ -23,8 +23,7 @@ import yaml
 
 from dosentinel.baselines import BASELINES
 from dosentinel.evaluate import evaluation_table, walk_forward_folds
-from dosentinel.features import (base_features, horizon_features, load_site_frame, saturation_features,
-                                 train_origin_mask)
+from dosentinel.features import base_features, horizon_features, load_site_frame, saturation_features, train_origin_mask
 from dosentinel.models import fit_predict_quantiles
 from dosentinel.weather import load_weather, weather_features
 

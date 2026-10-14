@@ -23,8 +23,7 @@ import yaml
 
 from dosentinel.baselines import BASELINES, forecast_frame
 from dosentinel.evaluate import walk_forward_folds
-from dosentinel.features import (base_features, horizon_features, load_site_frame, saturation_features,
-                                 train_origin_mask)
+from dosentinel.features import base_features, horizon_features, load_site_frame, saturation_features, train_origin_mask
 from dosentinel.foundation import HORIZONS_H, hourly_series, targets_at
 from dosentinel.models import fit_predict_quantiles
 from dosentinel.weather import load_weather, weather_features
@@ -151,7 +150,7 @@ def main() -> None:
             for q in ("q10", "q50", "q90"):
                 g[f"gbm_{q}"] = np.nan
                 g[f"gbmwx_{q}"] = np.nan
-            for fold, _, t0, t1 in folds:
+            for fold, _, t0, _t1 in folds:
                 rws = origins[fold_of == fold]
                 if len(rws) == 0:
                     continue

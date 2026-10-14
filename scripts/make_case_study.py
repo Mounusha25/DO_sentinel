@@ -1,4 +1,4 @@
-"""Build reports/case_study.html (self-contained, figures embedded) from the saved result files.
+"""Build docs/case-study.html (self-contained, figures embedded) from the saved result files.
 
     python scripts/make_case_study.py
 
@@ -29,14 +29,9 @@ plt.rcParams.update({"figure.dpi": 140, "axes.spines.top": False, "axes.spines.r
 C = {"base": "#8c8c8c", "gbm": "#1f77b4", "wx": "#2ca02c", "blend": "#ff7f0e", "naive": "#d62728", "model": "#1f77b4"}
 
 
-OUTDIR = Path("reports/case_study")
-OUTDIR.mkdir(parents=True, exist_ok=True)
-
-
 def img(fig, alt: str) -> str:
     buf = io.BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight")
-    (OUTDIR / (alt.lower().replace(" ", "_") + ".png")).write_bytes(buf.getvalue())
     plt.close(fig)
     return f'<img alt="{alt}" src="data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}">'
 
@@ -47,7 +42,9 @@ d = pd.read_parquet(R / "chronos2_rows.parquet").dropna(
 d["blend"] = 0.5 * (d.wx_q50 + d.gbmwx_q50)
 rows = []
 for h, g in d.groupby("horizon_h"):
-    m = lambda c: float((g[c] - g.y_true).abs().mean())
+    def m(c: str, _g=g) -> float:
+        return float((_g[c] - _g.y_true).abs().mean())
+
     base = min(m("persistence"), m("seasonal_naive"), m("persistence_diel_delta"))
     rows.append({"h": h, "baseline": base, "gbm": min(m("gbm_q50"), m("gbmwx_q50")), "blend": m("blend")})
 S = pd.DataFrame(rows).set_index("h")
@@ -104,7 +101,10 @@ F3 = img(fig, "Alert budget")
 # F4: drift detection is chance
 e = pd.read_csv(R / "drift_events.csv")
 n = pd.read_csv(R / "drift_events_null.csv")
-sel = lambda t: t[(t.detector == "interval_1h") & (t.threshold_type == "oracle")]
+def sel(t: pd.DataFrame) -> pd.DataFrame:
+    return t[(t.detector == "interval_1h") & (t.threshold_type == "oracle")]
+
+
 real = sel(e).groupby("duration_days").detected.mean()
 null = sel(n).groupby("duration_days").detected.mean()
 fig, ax = plt.subplots(figsize=(7.2, 3.4))
@@ -231,6 +231,7 @@ Details are in the model card.</p>
 fault-detection benchmark with injected faults, a FastAPI service with monitoring and a retrain rule, a replay dashboard,
 tests, a data manifest and pinned versions. Start with PROBLEM.md, MODEL_CARD.md and reports/EDA.md.</p>
 </main></body></html>"""
-out = Path("reports/case_study.html")
+out = Path("docs/case-study.html")
+out.parent.mkdir(exist_ok=True)
 out.write_text(html)
 print(f"wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")

@@ -18,8 +18,7 @@ import yaml
 
 from dosentinel.baselines import HORIZONS_H
 from dosentinel.calibration import PlattScaler, brier, cqr_correction, reliability_table
-from dosentinel.decision import (Costs, chance_baseline, decide, episodes_from_series,
-                                 evaluate_alerts)
+from dosentinel.decision import Costs, chance_baseline, decide, episodes_from_series, evaluate_alerts
 from dosentinel.evaluate import walk_forward_folds
 from dosentinel.features import base_features, horizon_features, load_site_frame, train_origin_mask
 from dosentinel.models import fit_predict_proba, fit_predict_quantiles
@@ -152,11 +151,12 @@ def main() -> None:
         v_now = v.reindex(tl).to_numpy()
         not_low = v_now >= thr  # NaN compares False: no anticipation credit on missing data
 
-        def score(rule: str, alert: np.ndarray, ratio: float, chance: bool = False, **extra) -> None:
-            kw = dict(horizon_steps=HORIZON_STEPS, costs=Costs(ratio, 1.0), not_low=not_low)
-            row = {**tag, "rule": rule, "miss_to_fa_ratio": ratio, **extra, **evaluate_alerts(episodes, alert, **kw)}
+        def score(rule: str, alert: np.ndarray, ratio: float, chance: bool = False, *,
+                  _episodes=episodes, _not_low=not_low, _tag=tag, **extra) -> None:
+            kw = {"horizon_steps": HORIZON_STEPS, "costs": Costs(ratio, 1.0), "not_low": _not_low}
+            row = {**_tag, "rule": rule, "miss_to_fa_ratio": ratio, **extra, **evaluate_alerts(_episodes, alert, **kw)}
             if chance:
-                row.update(chance_baseline(episodes, alert, **kw))
+                row.update(chance_baseline(_episodes, alert, **kw))
             alert_rows.append(row)
 
         for ratio in (3, 10, 30):

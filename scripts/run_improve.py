@@ -25,8 +25,14 @@ import yaml
 
 from dosentinel.baselines import BASELINES
 from dosentinel.evaluate import evaluation_table, walk_forward_folds
-from dosentinel.features import (base_features, do_saturation, horizon_features, load_site_frame,
-                                 saturation_features, train_origin_mask)
+from dosentinel.features import (
+    base_features,
+    do_saturation,
+    horizon_features,
+    load_site_frame,
+    saturation_features,
+    train_origin_mask,
+)
 from dosentinel.models import fit_predict_quantiles
 
 STEP = pd.Timedelta("15min")
@@ -98,7 +104,7 @@ def main() -> None:
             df = evaluation_table(v, folds=folds, horizons_h=[hh])
             if df.empty:
                 continue
-            cols0, colsS, colsG = list(Zb.columns), list(Zs.columns), list(Zg.columns)
+            colsS, colsG = list(Zs.columns), list(Zg.columns)
             delta = (v.shift(-h) - v).to_numpy()
             sat_tgt = pd.Series(do_saturation(temp.shift(-h)), index=idx)  # true sat at target time
             pct_now = Zs["do_pct"]

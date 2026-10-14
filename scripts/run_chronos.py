@@ -21,8 +21,7 @@ import yaml
 
 from dosentinel.baselines import BASELINES, forecast_frame
 from dosentinel.evaluate import walk_forward_folds
-from dosentinel.features import (base_features, horizon_features, load_site_frame, saturation_features,
-                                 train_origin_mask)
+from dosentinel.features import base_features, horizon_features, load_site_frame, saturation_features, train_origin_mask
 from dosentinel.foundation import HORIZONS_H, build_contexts, hourly_series, targets_at
 from dosentinel.models import fit_predict_quantiles
 
@@ -91,7 +90,7 @@ def main() -> None:
             for q in ("q10", "q50", "q90"):
                 g[f"ch_{q}"] = ch[(h, q)].to_numpy()
                 g[f"gbm_{q}"] = np.nan
-            for fold, _, t0, t1 in folds:
+            for fold, _, t0, _t1 in folds:
                 rws = origins[fold_of == fold]
                 if len(rws) == 0:
                     continue

@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, "src")
-from dosentinel.stats import sign_test_p, skill_ci  # noqa: E402
+from dosentinel.stats import skill_ci  # noqa: E402
 
 BASELINES = ["persistence", "seasonal_naive", "seasonal_mean_7d", "persistence_diel_delta"]
 VARIANTS = ["v0_local", "v1a_local_sat", "v1b_local_sat_target", "v4_global", "v3_blend"]
@@ -31,7 +31,7 @@ def main(path: str = "results/improve_weekly.csv") -> None:
         # best baseline per site (by total error over the whole test period)
         tot = g.groupby("site")[BASELINES].sum()
         best = tot.idxmin(axis=1)
-        g = g.assign(best_baseline=g.apply(lambda r: r[best[r["site"]]], axis=1))
+        g = g.assign(best_baseline=[row[best[row["site"]]] for _, row in g.iterrows()])
         print(f"\n=== horizon {hh} h ===  (site-weeks: {len(g)}, sites: {g.site.nunique()})")
         rows = []
         for m in VARIANTS:

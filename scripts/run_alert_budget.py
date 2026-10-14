@@ -62,8 +62,8 @@ def main() -> None:
         v_now = v.reindex(tl).to_numpy()
         not_low = v_now >= thr
 
-        def ev(alert: np.ndarray) -> dict:
-            return evaluate_alerts(episodes, alert & ~suspect, horizon_steps=H, not_low=not_low)
+        def ev(alert: np.ndarray, _episodes=episodes, _suspect=suspect, _not_low=not_low) -> dict:
+            return evaluate_alerts(_episodes, alert & ~_suspect, horizon_steps=H, not_low=_not_low)
 
         base = {"site": sid, "role": site["role"], "episodes": len(episodes)}
         for c in CUTOFFS:

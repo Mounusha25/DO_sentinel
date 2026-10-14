@@ -23,8 +23,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostin
 
 from dosentinel.baselines import BASELINES, forecast_frame
 from dosentinel.evaluate import walk_forward_folds
-from dosentinel.features import (SITE_SPECIFIC, base_features, horizon_features, load_site_frame,
-                                 train_origin_mask)
+from dosentinel.features import SITE_SPECIFIC, base_features, horizon_features, load_site_frame, train_origin_mask
 from dosentinel.models import PARAMS
 
 CAL_DAYS = 90

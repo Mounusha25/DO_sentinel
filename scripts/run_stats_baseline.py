@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import sys
 import warnings
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -24,6 +23,10 @@ from dosentinel.foundation import HORIZONS_H, build_contexts, hourly_series  # n
 from dosentinel.stats import skill_ci  # noqa: E402
 
 CTX = 336  # 14 days of hourly values
+
+
+def _ci(wk: pd.DataFrame, a: str, b: str, seed: int):
+    return skill_ci(wk[a].to_numpy(), wk[b].to_numpy(), seed=seed)
 
 
 def fit_forecast(ctx: np.ndarray):
@@ -79,11 +82,10 @@ def main() -> None:
         for c in ("ets", "gbm_q50", "ch_q50"):
             g[f"a_{c}"] = (g[c] - g.y_true).abs()
         wk = g.groupby(["site", "week"])[["best", "a_ets", "a_gbm_q50", "a_ch_q50"]].sum()
-        f = lambda a, b, s: skill_ci(wk[a].to_numpy(), wk[b].to_numpy(), seed=s)
-        p1 = f("a_ets", "best", 1)
-        p2 = f("a_gbm_q50", "best", 2)
-        p3 = f("a_ch_q50", "best", 3)
-        p4 = f("a_gbm_q50", "a_ets", 4)
+        p1 = _ci(wk, "a_ets", "best", 1)
+        p2 = _ci(wk, "a_gbm_q50", "best", 2)
+        p3 = _ci(wk, "a_ch_q50", "best", 3)
+        p4 = _ci(wk, "a_gbm_q50", "a_ets", 4)
         lines.append({"h": h, "n": len(g), "ETS vs best simple baseline": f"{p1[0]:+.3f} [{p1[1]:+.3f},{p1[2]:+.3f}]",
                       "GBM vs best baseline": f"{p2[0]:+.3f}", "Chronos-Bolt vs best baseline": f"{p3[0]:+.3f}",
                       "GBM vs ETS": f"{p4[0]:+.3f} [{p4[1]:+.3f},{p4[2]:+.3f}]"})

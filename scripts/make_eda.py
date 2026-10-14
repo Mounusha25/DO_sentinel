@@ -147,7 +147,7 @@ lags = np.arange(1, 4 * 24 + 1)
 acf24 = {}
 for sid in pick:
     h = frames[sid]["do"][frames[sid].index.minute == 0].iloc[-24 * 730:]
-    a = [h.autocorr(int(l)) for l in lags]
+    a = [h.autocorr(int(lag)) for lag in lags]
     ax[0].plot(lags, a, label=label(sid))
     acf24[sid] = float(a[23])
 ax[0].set_xlabel("lag (hours)")

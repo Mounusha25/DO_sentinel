@@ -13,9 +13,8 @@ import pandas as pd
 import yaml
 
 from dosentinel.baselines import BASELINES
+from dosentinel.evaluate import clean_values, evaluation_table, event_table, skill_table, storm_state, walk_forward_folds
 from dosentinel.features import load_site_frame
-from dosentinel.evaluate import (clean_values, evaluation_table, event_table, skill_table,
-                                 storm_state, walk_forward_folds)
 
 
 def main() -> None:

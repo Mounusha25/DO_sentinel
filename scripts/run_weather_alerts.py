@@ -20,7 +20,7 @@ import yaml
 
 from dosentinel.calibration import PlattScaler
 from dosentinel.decision import episodes_from_series, evaluate_alerts
-from dosentinel.direct import H, MIN_CAL_CLASS, within_label
+from dosentinel.direct import MIN_CAL_CLASS, H, within_label
 from dosentinel.evaluate import walk_forward_folds
 from dosentinel.features import base_features, load_site_frame, train_origin_mask
 from dosentinel.models import fit_predict_proba
@@ -114,8 +114,8 @@ def main() -> None:
         v_now = v.reindex(tl).to_numpy()
         not_low = v_now >= thr
 
-        def ev(alert):
-            return evaluate_alerts(episodes, alert & ~suspect, horizon_steps=H, not_low=not_low)
+        def ev(alert, _episodes=episodes, _suspect=suspect, _not_low=not_low):
+            return evaluate_alerts(_episodes, alert & ~_suspect, horizon_steps=H, not_low=_not_low)
 
         base = {"site": sid, "role": site["role"], "episodes": len(episodes)}
         for name in ("off", "on"):

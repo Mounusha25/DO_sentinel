@@ -18,11 +18,11 @@ import pandas as pd
 import yaml
 
 from dosentinel.calibration import brier
-from dosentinel.decision import (Costs, chance_baseline, decide, episodes_from_series,
-                                 evaluate_alerts)
-from dosentinel.evaluate import walk_forward_folds
+from dosentinel.decision import Costs, chance_baseline, decide, episodes_from_series, evaluate_alerts
 from dosentinel.direct import H, site_probability, within_label  # noqa: F401
+from dosentinel.evaluate import walk_forward_folds
 from dosentinel.features import load_site_frame
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -68,10 +68,11 @@ def main() -> None:
                           "brier_model": brier(b["p"], b["y"]), "brier_state_only": brier(ref, b["y"]),
                           "platt_applied_share": float(P.groupby("fold").platt_applied.first().mean())})
 
-        def score(rule: str, alert: np.ndarray, ratio: float, **extra) -> None:
-            kw = dict(horizon_steps=H, costs=Costs(ratio, 1.0), not_low=not_low)
-            alert_rows.append({**tag, "rule": rule, "miss_to_fa_ratio": ratio, **extra,
-                               **evaluate_alerts(episodes, alert, **kw), **chance_baseline(episodes, alert, **kw)})
+        def score(rule: str, alert: np.ndarray, ratio: float, *, _episodes=episodes, _not_low=not_low, _tag=tag,
+                  **extra) -> None:
+            kw = {"horizon_steps": H, "costs": Costs(ratio, 1.0), "not_low": _not_low}
+            alert_rows.append({**_tag, "rule": rule, "miss_to_fa_ratio": ratio, **extra,
+                               **evaluate_alerts(_episodes, alert, **kw), **chance_baseline(_episodes, alert, **kw)})
 
         for ratio in (3, 10, 30):
             c = Costs(ratio, 1.0)
