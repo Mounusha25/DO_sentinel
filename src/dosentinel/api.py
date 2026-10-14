@@ -21,8 +21,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from .features import PARAM_COLS
 from .ingest import UsgsClient
-from .monitoring import (data_age_minutes, input_health, log_forecast, read_log, retrain_decision,
-                         score_log)
+from .monitoring import data_age_minutes, input_health, log_forecast, read_log, retrain_decision, score_log
 from .serving import SiteBundle, clean_frame_from_raw, forecast
 
 HISTORY_DAYS = 40
@@ -86,7 +85,7 @@ def _frame_from_payload(series: dict[str, list[Observation]]) -> pd.DataFrame:
     try:
         return clean_frame_from_raw(raw)
     except ValueError as e:
-        raise HTTPException(422, str(e))
+        raise HTTPException(422, str(e)) from e
 
 
 def log_path() -> Path | None:
@@ -98,7 +97,7 @@ def _respond(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float, live: b
     try:
         res = forecast(bundle, frame, cost_ratio)
     except ValueError as e:
-        raise HTTPException(422, str(e))
+        raise HTTPException(422, str(e)) from e
     res["input_health"] = input_health(frame)
     hv = frame["do"][frame.index.minute == 0].iloc[-72:]  # last three days, hourly, for charts
     res["history"] = {"start": hv.index[0].isoformat() if len(hv) else None, "step_hours": 1,
@@ -166,7 +165,7 @@ def _fetch_live_frame(site_id: str) -> pd.DataFrame:
     try:
         return clean_frame_from_raw(raw, window_start=start)
     except ValueError as e:
-        raise UpstreamError(str(e))
+        raise UpstreamError(str(e)) from e
 
 
 @app.get("/forecast/{site_id}")
@@ -182,7 +181,7 @@ def forecast_live(site_id: str, cost_ratio: float = Query(10.0, gt=0, le=1000)) 
         except UpstreamError as e:
             if hit is None:
                 raise HTTPException(503, f"USGS data is unavailable right now ({e}). Try again in a few minutes.",
-                                    headers={"Retry-After": "120"})
+                                    headers={"Retry-After": "120"}) from e
             stale, reason = True, str(e)  # serve the last good data, clearly marked
     res = _respond(bundle, hit[1], cost_ratio, live=True)
     res["stale"] = stale

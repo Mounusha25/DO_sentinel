@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from dosentinel.monitoring import (RetrainRule, data_age_minutes, input_health, log_forecast, read_log,
-                                   retrain_decision, score_log)
+from dosentinel.monitoring import RetrainRule, data_age_minutes, input_health, log_forecast, read_log, retrain_decision, score_log
 
 
 def _report():

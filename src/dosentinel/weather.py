@@ -45,7 +45,6 @@ def weather_features(idx: pd.DatetimeIndex, W: pd.DataFrame, h: int, source: str
 
     p = W[f"{source}_precipitation"]
     c = p.fillna(0.0).cumsum()
-    avail = p.notna().astype(float)
     rain_next = _at(c, target) - _at(c, now)
     # unknown where the forecast archive has no value for the target hour
     out["rain_next"] = np.where(~np.isnan(_at(p, target)), rain_next, np.nan)

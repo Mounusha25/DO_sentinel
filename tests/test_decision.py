@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 
 from dosentinel.calibration import PlattScaler, brier, cqr_correction, reliability_table
-from dosentinel.decision import (Costs, alert_clusters, chance_baseline, decide,
-                                 episodes_from_series, evaluate_alerts)
+from dosentinel.decision import Costs, alert_clusters, chance_baseline, decide, episodes_from_series, evaluate_alerts
 
 
 def _v(vals):

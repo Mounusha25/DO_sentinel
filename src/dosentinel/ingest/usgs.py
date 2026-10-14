@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Iterable, Iterator
+from collections.abc import Iterable, Iterator
 
 import pandas as pd
 import requests
@@ -86,7 +86,7 @@ class UsgsClient:
             payload = self._get(url, query)
             yield from payload.get("features", [])
             url = next(
-                (l["href"] for l in payload.get("links", []) if l.get("rel") == "next"),
+                (link["href"] for link in payload.get("links", []) if link.get("rel") == "next"),
                 None,
             )
             query = None  # the next link is already a complete URL

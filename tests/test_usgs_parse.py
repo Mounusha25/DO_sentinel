@@ -1,6 +1,5 @@
 """Parser tests. The fixture is hand-written to match the documented field names of
 the `continuous` collection; it is NOT a captured USGS response."""
-import pandas as pd
 
 from dosentinel.ingest import features_to_frame
 

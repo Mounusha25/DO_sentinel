@@ -14,8 +14,15 @@ from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostin
 from .baselines import STEPS_PER_DAY, persistence_diel_delta
 from .calibration import PlattScaler, cqr_correction
 from .decision import Costs
-from .detect import (interval_score, persistence_residual_online, persistence_residual_score,
-                     robust_scale, rules_flag, run_length, threshold_at_rate)
+from .detect import (
+    interval_score,
+    persistence_residual_online,
+    persistence_residual_score,
+    robust_scale,
+    rules_flag,
+    run_length,
+    threshold_at_rate,
+)
 from .evaluate import clean_values
 from .features import PARAM_COLS, base_features, horizon_features, train_origin_mask
 from .models import PARAMS
@@ -190,8 +197,10 @@ def forecast(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float = 10.0) 
         d = np.sort([bundle.quantile_models[h][q].predict(Zr)[0] for q in QUANTILES])
         m = bundle.cqr_margin[h]
         fc.append({"horizon_h": hh, "target_time": (t + hh * 4 * STEP).isoformat(),
-                   "median_mgL": float(now + d[1]), "low_mgL": float(max(0.0, now + d[0] - m)),
-                   "high_mgL": float(now + d[2] + m)})
+                   "median_mgL": float(now + d[1]),
+                   # a negative conformal margin must not push the interval past the median
+                   "low_mgL": float(max(0.0, min(now + d[0] - m, now + d[1]))),
+                   "high_mgL": float(max(now + d[2] + m, now + d[1]))})
     out["forecasts"] = fc
 
     # ---- probability of a low-DO episode in the next 24 h, and the action

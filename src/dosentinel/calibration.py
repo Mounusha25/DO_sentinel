@@ -36,7 +36,7 @@ class PlattScaler:
         p = np.clip(np.asarray(p, dtype=float), EPS, 1 - EPS)
         return np.log(p / (1 - p)).reshape(-1, 1)
 
-    def fit(self, p: np.ndarray, y: np.ndarray) -> "PlattScaler":
+    def fit(self, p: np.ndarray, y: np.ndarray) -> PlattScaler:
         self._lr.fit(self._logit(p), np.asarray(y, dtype=int))
         self.fitted = True
         return self

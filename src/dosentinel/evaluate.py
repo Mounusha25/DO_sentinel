@@ -97,7 +97,9 @@ def event_table(df: pd.DataFrame, names: list[str], threshold: float = LOW_DO) -
         started_ok = g["y_origin"] >= threshold
         for m in names:
             pred = g[m] < threshold
-            tp = int((truth & pred).sum()); fp = int((~truth & pred).sum()); fn = int((truth & ~pred).sum())
+            tp = int((truth & pred).sum())
+            fp = int((~truth & pred).sum())
+            fn = int((truth & ~pred).sum())
             on_truth = truth & started_ok
             on_tp = int((on_truth & pred).sum())
             on_fp = int((~truth & started_ok & pred).sum())

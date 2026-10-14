@@ -1,9 +1,15 @@
 import numpy as np
 import pandas as pd
 
-from dosentinel.detect import (interval_score, persistence_residual_online,
-                               persistence_residual_score, robust_scale, rules_flag, run_length,
-                               threshold_at_rate)
+from dosentinel.detect import (
+    interval_score,
+    persistence_residual_online,
+    persistence_residual_score,
+    robust_scale,
+    rules_flag,
+    run_length,
+    threshold_at_rate,
+)
 from dosentinel.faults import DEFAULT_COUNTS, inject_drifts, inject_faults
 from dosentinel.validate import Rule
 

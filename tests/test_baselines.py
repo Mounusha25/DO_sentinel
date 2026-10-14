@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from dosentinel.baselines import BASELINES, STEPS_PER_DAY, forecast_frame, persistence, seasonal_naive
-from dosentinel.evaluate import event_table, evaluation_table, walk_forward_folds
+from dosentinel.evaluate import evaluation_table, event_table, walk_forward_folds
 
 
 def _v(n=STEPS_PER_DAY * 12, seed=0):
