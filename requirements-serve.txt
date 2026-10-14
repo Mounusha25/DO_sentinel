@@ -1,0 +1,11 @@
+# Runtime dependencies of the API image, pinned to the versions the results were produced with.
+numpy==2.4.4
+pandas==2.3.3
+requests==2.32.5
+pyyaml==6.0.3
+scikit-learn==1.8.0
+scipy==1.17.1
+joblib==1.5.3
+fastapi==0.135.2
+uvicorn==0.42.0
+pydantic==2.12.5

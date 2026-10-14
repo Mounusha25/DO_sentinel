@@ -15,7 +15,8 @@ import joblib
 import pandas as pd
 import yaml
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, field_validator
 
 from .features import PARAM_COLS
 from .ingest import UsgsClient
@@ -33,6 +34,11 @@ CAVEATS = [
 
 app = FastAPI(title="do-sentinel", version="0.1.0",
               description="Short-horizon dissolved-oxygen forecasting, sensor-fault flags and alert decisions.")
+# Read-only public API: allow browsers on the listed origins (comma-separated) to call it.
+_origins = [o.strip() for o in os.environ.get("DOSENTINEL_CORS", "https://mounusha25.github.io").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=_origins, allow_methods=["GET", "POST", "OPTIONS"],
+                   allow_headers=["*"], max_age=3600)
+MAX_OBSERVATIONS = 20000  # total points per request (a 40-day history is about 3,840 per series)
 _bundles: dict[str, SiteBundle] = {}
 _cache: dict[str, tuple[float, dict]] = {}
 
@@ -58,7 +64,14 @@ class Observation(BaseModel):
 class SeriesPayload(BaseModel):
     series: dict[str, list[Observation]] = Field(
         ..., description="parameter code -> observations; 00300 (DO) required, 00010/00095/63680/00060 optional")
-    cost_ratio: float = Field(10.0, gt=0, description="cost of a missed episode relative to a false alert")
+    cost_ratio: float = Field(10.0, gt=0, le=1000, description="cost of a missed episode relative to a false alert")
+
+    @field_validator("series")
+    @classmethod
+    def _bounded(cls, v):
+        if sum(len(x) for x in v.values()) > MAX_OBSERVATIONS:
+            raise ValueError(f"too many observations (limit {MAX_OBSERVATIONS})")
+        return v
 
 
 def _frame_from_payload(series: dict[str, list[Observation]]) -> pd.DataFrame:

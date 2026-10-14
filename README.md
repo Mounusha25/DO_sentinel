@@ -213,7 +213,29 @@ curl localhost:8000/forecast/USGS-03293500        # live pull of the last 40 day
 - `GET /forecast/{site_id}?cost_ratio=10`: pulls the latest data (cached 5 min), returns forecasts at 1, 3, 6, 12 and 24 h with conformal 80% intervals, the calibrated probability of DO falling below the threshold within 24 h, fault flags, and a recommended action (`none`, `warning`, `maintenance`).
 - `POST /forecast/{site_id}`: same, from series you supply (`{"series": {"00300": [{"time": ..., "value": ...}], ...}}`); useful offline and for replays.
 
-Serving reuses the evaluated feature, model, calibration and detector code. A `Dockerfile` is provided (not built or tested in this environment). Bundles record their training and calibration dates; retrain on a schedule. Every response carries the evaluation caveats: alerting is competitive with, not better than, a simple threshold rule, and slow drift is not reliably detected.
+Serving reuses the evaluated feature, model, calibration and detector code. The `Dockerfile` has been built and run (non-root user, health check, about 860 MB, about 160 MiB of memory in use). Bundles record their training and calibration dates; retrain on a schedule. Every response carries the evaluation caveats: alerting is competitive with, not better than, a simple threshold rule, and slow drift is not reliably detected.
+
+## Deployment
+
+| Part | Where | How |
+|---|---|---|
+| Dashboard (static replay) | GitHub Pages: https://mounusha25.github.io/DO_sentinel/ | serves `docs/`, rebuilt by `python scripts/build_dashboard.py` |
+| Case study | https://mounusha25.github.io/DO_sentinel/case-study.html | same site |
+| API (live forecasts) | any container host | `Dockerfile` + `render.yaml` |
+
+```bash
+docker build -t do-sentinel .
+docker run -p 8000:8000 do-sentinel          # http://localhost:8000/docs for the interactive API
+```
+
+On Render: New > Blueprint, pick this repository; `render.yaml` sets the build, the health check and the CORS origin. The trained bundles in `models/` are committed so any git-based host can build the image; regenerate them with `python scripts/train_models.py`.
+
+Operating notes:
+
+* **Anonymous by default.** Without `USGS_API_KEY` the service uses USGS's unauthenticated limit (about 1,000 requests per hour per address); a live forecast pulls five series per site and is cached for five minutes. Never put a key in the repository.
+* **Public and unauthenticated.** Anyone can call `/forecast`; payloads are capped at 20,000 observations, and CORS is limited to `DOSENTINEL_CORS`. Add authentication before using it for anything beyond a demonstration.
+* **Models do not update themselves.** They were trained through 2025-10 and calibrated on the following year; see the retraining policy in MODEL_CARD.md. Forecast logging (`DOSENTINEL_LOG`) writes to the container's disk, which is ephemeral on most free hosts.
+* **Free tiers sleep** after inactivity, so the first request after a pause can take about a minute.
 
 ## Dashboard
 

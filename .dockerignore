@@ -1,0 +1,16 @@
+# keep the image small and free of data and experiments
+.git
+.venv*/
+__pycache__/
+.pytest_cache/
+data/
+results/
+results_prev/
+reports/
+docs/
+logs/
+tests/
+scripts/
+app/
+*.md
+!README.md

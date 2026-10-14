@@ -1,0 +1,13 @@
+# Render Blueprint: New > Blueprint, pick this repository. Builds the Dockerfile and serves the API.
+services:
+  - type: web
+    name: do-sentinel-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DOSENTINEL_CORS          # origins allowed to call the API from a browser
+        value: https://mounusha25.github.io
+      - key: USGS_API_KEY             # optional; raises the USGS rate limit. Set in the dashboard, never commit it.
+        sync: false

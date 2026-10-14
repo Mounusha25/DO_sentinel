@@ -126,3 +126,17 @@ def test_api_logs_and_monitors(bundle, tmp_path, monkeypatch):
     assert (tmp_path / "log.jsonl").exists()
     m = c.get("/monitor/S-1").json()
     assert m["logged_forecasts"] >= 5 and "retrain" in m and m["model_age_days"] >= 0
+
+
+def test_api_rejects_oversized_payload_and_sets_cors(bundle, tmp_path, monkeypatch):
+    joblib.dump(bundle, tmp_path / "S-1.joblib")
+    monkeypatch.setenv("DOSENTINEL_MODELS", str(tmp_path))
+    api._bundles.clear()
+    c = TestClient(api.app)
+    big = {"00300": [{"time": f"2026-01-01T00:{i % 60:02d}:00Z", "value": 7.0} for i in range(api.MAX_OBSERVATIONS + 5)]}
+    assert c.post("/forecast/S-1", json={"series": big}).status_code == 422
+    r = c.options("/forecast/S-1", headers={"Origin": "https://mounusha25.github.io",
+                                              "Access-Control-Request-Method": "GET"})
+    assert r.headers.get("access-control-allow-origin") == "https://mounusha25.github.io"
+    r2 = c.options("/forecast/S-1", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"})
+    assert "access-control-allow-origin" not in r2.headers

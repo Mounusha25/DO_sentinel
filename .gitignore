@@ -12,7 +12,6 @@ data/raw/
 data/clean/
 data/weather/
 data/chronos2_cache/
-models/
 logs/
 results_prev/
 results/*.parquet
