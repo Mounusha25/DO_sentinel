@@ -53,9 +53,14 @@ class UsgsClient:
         headers = {"Accept": "application/geo+json, application/json"}
         if self.api_key:
             headers["X-Api-Key"] = self.api_key
+        last = ""
         for attempt in range(self.max_retries):
             resp = self.session.get(url, params=params, headers=headers, timeout=self.timeout)
             if resp.status_code in (429, 500, 502, 503, 504):
+                last = f"HTTP {resp.status_code}"
+                ra = resp.headers.get("Retry-After") if hasattr(resp, "headers") else None
+                if ra:
+                    last += f", Retry-After {ra}s"
                 delay = self.backoff**attempt
                 if resp.status_code == 429:
                     delay = max(delay, self._retry_after(resp))
@@ -63,7 +68,7 @@ class UsgsClient:
                 continue
             resp.raise_for_status()
             return resp.json()
-        raise RuntimeError(f"USGS API still failing after {self.max_retries} attempts: {url}")
+        raise RuntimeError(f"USGS API still failing after {self.max_retries} attempts ({last}): {url}")
 
     def _retry_after(self, resp: requests.Response) -> float:
         """Seconds the server asked us to wait (capped), or 0 if absent/unparseable."""

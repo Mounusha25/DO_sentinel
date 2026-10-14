@@ -69,7 +69,7 @@ def test_429_honors_retry_after_and_caps_it(monkeypatch):
 
 def test_gives_up_after_max_retries():
     client, sess = _client([_Resp(500)] * 3, max_retries=3)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="HTTP 500"):
         list(client.iter_features("continuous", {}))
     assert len(sess.calls) == 3
 
