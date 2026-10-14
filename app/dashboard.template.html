@@ -190,7 +190,7 @@ footer a{color:var(--ink-2)}
       <button class="tab" role="tab" id="tab-evidence" aria-selected="false">Evidence</button>
     </nav>
     <div class="spacer"></div>
-    <span class="badge" id="mode-badge">Replay · real forecasts</span>
+    <div class="seg" id="mode" role="group" aria-label="Data mode"><button data-m="replay" aria-pressed="true">Replay</button><button data-m="live" aria-pressed="false">Live</button></div>
     <button class="iconbtn" id="theme" title="Switch light and dark" aria-label="Switch light and dark">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.200 3a7 7 0 0 0 9.800 9.800z"/></svg>
     </button>
@@ -199,7 +199,7 @@ footer a{color:var(--ink-2)}
   <main id="view-network">
     <div class="controls">
       <div class="ctl">
-        <div class="ctl-title">Forecast issued</div>
+        <div id="tl-box"><div class="ctl-title">Forecast issued</div>
         <div class="timeline">
           <button class="iconbtn" id="prev" aria-label="Previous time">‹</button>
           <button class="iconbtn" id="play" aria-label="Play through time">▶</button>
@@ -207,7 +207,13 @@ footer a{color:var(--ink-2)}
           <input type="range" id="slider" min="0" max="0" step="1" aria-label="Forecast issue time">
           <span class="when mono" id="when"></span>
         </div>
-        <div class="ctl-note" id="replay-note"></div>
+        <div class="ctl-note" id="replay-note"></div></div>
+        <div id="live-box" hidden>
+          <div class="ctl-title">Live data</div>
+          <div class="timeline"><span class="when mono" id="live-when">Loading</span><span style="flex:1"></span>
+            <button class="iconbtn" id="live-refresh" aria-label="Refresh live data" title="Refresh">↻</button></div>
+          <div class="ctl-note" id="live-note"></div>
+        </div>
       </div>
       <div class="ctl">
         <div class="ctl-title">Cost of a missed event vs a false alert</div>
@@ -246,7 +252,7 @@ footer a{color:var(--ink-2)}
   <footer>
     Data: USGS continuous water-quality observations (public); weather experiments use Open-Meteo. Replay shows real model output for the last 30 days
     of data; models were trained on data before <span id="f-train"></span> and their interval and probability calibration used the following year, which
-    includes this replay window. Forecasts support a human decision and are not a compliance tool. Slow sensor drift is not detected.
+    includes this replay window. Live mode asks the deployed API for current USGS readings; the free server sleeps when idle, so the first load can take a minute. Forecasts support a human decision and are not a compliance tool. Slow sensor drift is not detected.
     <a href="https://github.com/Mounusha25/DO_sentinel" target="_blank" rel="noopener">Source, model card and methods on GitHub</a>.
   </footer>
 </div>
@@ -274,7 +280,16 @@ const ACTION = {risk:"Send a crew or issue an advisory.", check:"Schedule mainte
 const FLAGTXT = ["Reading outside the plausible range or changing too fast","Value stuck unchanged for 72 hours or more",
   "Sudden jump versus yesterday's pattern","Reading outside the 1-hour forecast band","Latest reading missing"];
 const fmtWhen = d3.utcFormat("%a %d %b · %H:%M UTC"), fmtDay = d3.utcFormat("%d %b"), fmtHM = d3.utcFormat("%d %b %H:%M");
-const st = {t:0, ratio:10, site:null, tab:"network", filter:null, playing:false, timer:null};
+const st = {t:0, ratio:10, site:null, tab:"network", filter:null, playing:false, timer:null,
+  mode:"replay", live:{}, liveAt:null, liveBusy:false};
+const API = "https://do-sentinel-api.onrender.com";
+const EMPTY_ROW = {p:null, do:null, obs:null, fl:BIT_MISSING, f:[]};
+function getRow(s, i){ if(st.mode==="live"){ const e = st.live[s.id]; return e && e.row ? e.row : null; } return s.replay[i]; }
+function liveObs(L, ms){
+  const h = L.report.history; if(!h || !h.start) return null;
+  const k = Math.round((ms - new Date(h.start).getTime())/HOUR);
+  return (k>=0 && k<h.do.length) ? h.do[k] : null;
+}
 const $ = id => document.getElementById(id);
 const cutoff = () => 1/(1+st.ratio);
 const pct = x => x==null ? "n/a" : Math.round(x*100)+"%";
@@ -282,7 +297,7 @@ const f1 = x => x==null ? "n/a" : x.toFixed(1);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
 function status(s, i){
-  const r = s.replay[i], other = r.fl & ~BIT_MISSING;
+  const r = getRow(s,i) || EMPTY_ROW, other = r.fl & ~BIT_MISSING;
   if(other) return "check";
   if((r.fl & BIT_MISSING) || r.do==null) return "nodata";
   return (r.p!=null && r.p > cutoff()) ? "risk" : "ok";
@@ -305,6 +320,17 @@ function icon(kind, size){
 
 /* ---------- controls ---------- */
 function renderControls(){
+  const live = st.mode==="live";
+  $("tl-box").hidden = live; $("live-box").hidden = !live;
+  document.querySelectorAll("#mode button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.m===st.mode)));
+  const n = SITES.filter(s=>st.live[s.id]).length, bad = SITES.filter(s=>st.live[s.id] && st.live[s.id].error).length;
+  if(live){
+    $("live-when").textContent = st.liveBusy ? `Loading ${n} of ${SITES.length}` :
+      (st.liveAt ? "Updated " + new Date(st.liveAt).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "Not loaded");
+    $("live-note").textContent = bad===SITES.length && !st.liveBusy
+      ? "The live API could not be reached from this page. Live mode works from the GitHub Pages site or a local copy with internet access."
+      : `Current USGS readings, forecast by the deployed API.${bad ? " " + bad + " site(s) failed to load." : ""} The free server sleeps when idle, so the first load can take about a minute.`;
+  }
   $("slider").value = st.t;
   $("when").textContent = fmtWhen(T[st.t]);
   $("cutoff-note").textContent = `An alert is raised when the chance of DO below 5 mg/L in the next 24 h exceeds ${pct(cutoff())}.`;
@@ -369,7 +395,7 @@ function renderMap(){
      .style("paint-order","stroke").style("stroke","var(--surface)").style("stroke-width","4px").text(d=>d.s.short);
 }
 function showTip(e, d, focus){
-  const r = d.s.replay[st.t], tip = $("tip"), wrap = tip.parentElement.getBoundingClientRect();
+  const r = getRow(d.s, st.t) || EMPTY_ROW, tip = $("tip"), wrap = tip.parentElement.getBoundingClientRect();
   tip.hidden = false;
   tip.innerHTML = `<b>${d.s.short}</b>, ${d.s.state}<br>${LABEL[d.k]} · ${pct(r.p)} chance of low DO<br>DO now ${f1(r.do)} mg/L`;
   let x, y;
@@ -382,7 +408,7 @@ function hideTip(){ $("tip").hidden = true; }
 /* ---------- queue ---------- */
 const ORDER = {risk:0, check:1, nodata:2, ok:3};
 function renderQueue(){
-  const rows = SITES.map(s=>({s, k:status(s,st.t), r:s.replay[st.t]}))
+  const rows = SITES.map(s=>({s, k:status(s,st.t), r:getRow(s,st.t) || EMPTY_ROW}))
     .filter(d=>!st.filter || d.k===st.filter)
     .sort((a,b)=> ORDER[a.k]-ORDER[b.k] || (b.r.p||0)-(a.r.p||0));
   $("queue-sub").textContent = st.filter ? `Showing ${LABEL[st.filter].toLowerCase()} · click again to clear` : "Ranked by what needs attention first";
@@ -401,14 +427,14 @@ function renderQueue(){
 /* ---------- detail ---------- */
 function select(id){ st.site = id; renderMap(); renderQueue(); renderDetail(); }
 function renderDetail(){
-  const s = BY[st.site], i = st.t, r = s.replay[i], k = status(s,i), oc = outcome(s,i);
+  const s = BY[st.site], i = st.t, r = getRow(s,i) || EMPTY_ROW, k = status(s,i), oc = st.mode==="live" ? null : outcome(s,i);
   const flags = FLAGTXT.map((t,b)=>({t, on:!!(r.fl & (1<<b))}));
   const outHtml = oc ? `<div class="outcome"><div class="section-t">What actually happened</div>
       <b>${oc.event ? "Oxygen fell below 5 mg/L" : "Oxygen stayed above 5 mg/L"}</b> in the next 24 hours
       (minimum <span class="mono">${oc.min.toFixed(1)}</span> mg/L).
       ${k==="risk" ? (oc.event ? "The warning was right." : "The warning did not verify.") :
         (k==="ok" ? (oc.event ? "No warning was raised: a miss." : "No event, no warning.") : "")}</div>`
-    : `<div class="outcome"><div class="section-t">What actually happened</div>Too few observations in the next 24 hours to say.</div>`;
+    : `<div class="outcome"><div class="section-t">${st.mode==="live" ? "Outcome" : "What actually happened"}</div>${st.mode==="live" ? "The next 24 hours have not happened yet." : "Too few observations in the next 24 hours to say."}</div>`;
   $("detail").innerHTML = `
     <div class="detail-h">
       <div><h2>${s.name}</h2><div class="sub">${s.state} · ${s.regime} · ${Math.round(s.area).toLocaleString()} sq mi basin · low DO on ${pct(s.low_day_share)} of days</div></div>
@@ -440,14 +466,18 @@ function renderDetail(){
         ${outHtml}
       </div>
     </div>`;
-  drawFan(s,i); drawHist(s,i);
+  drawFan(s,i);
+  if(st.mode==="live"){ const h = $("hist"); if(h){ h.previousElementSibling.remove(); h.nextElementSibling.remove(); h.remove(); } }
+  else drawHist(s,i);
 }
 function svgBox(el, h){ const w = Math.max(320, el.clientWidth||640); return {w, h}; }
 function drawFan(s, i){
   const el = $("fan"), {w,h} = svgBox(el, 330), m = {l:40,r:14,t:12,b:28};
-  const t0 = T[i].getTime(), r = s.replay[i];
+  const L = (st.mode==="live" && st.live[s.id] && st.live[s.id].report) ? st.live[s.id] : null;
+  const ob = ms => L ? liveObs(L, ms) : obs(s, ms);
+  const t0 = L ? new Date(L.report.as_of).getTime() : T[i].getTime(), r = getRow(s,i) || EMPTY_ROW;
   const x0 = t0 - 60*HOUR, x1 = t0 + 26*HOUR;
-  const pts = []; for(let ms = Math.ceil(x0/HOUR)*HOUR; ms<=x1; ms+=HOUR){ pts.push({ms, v:obs(s,ms)}); }
+  const pts = []; for(let ms = Math.ceil(x0/HOUR)*HOUR; ms<=x1; ms+=HOUR){ pts.push({ms, v:ob(ms)}); }
   const hist = pts.filter(p=>p.ms<=t0 && p.v!=null), fut = pts.filter(p=>p.ms>=t0 && p.v!=null);
   const vals = pts.map(p=>p.v).filter(v=>v!=null);
   if(r.f) r.f.forEach(a=>vals.push(a[0],a[2]));
@@ -485,7 +515,7 @@ function drawFan(s, i){
   const tip = d3.select(el).append("div").attr("class","tip").style("display","none");
   svg.append("rect").attr("x",m.l).attr("y",m.t).attr("width",w-m.l-m.r).attr("height",h-m.t-m.b).attr("fill","transparent")
     .on("mousemove",ev=>{
-      const px = d3.pointer(ev)[0], ms = Math.round(x.invert(px).getTime()/HOUR)*HOUR, v = obs(s,ms);
+      const px = d3.pointer(ev)[0], ms = Math.round(x.invert(px).getTime()/HOUR)*HOUR, v = ob(ms);
       rule.attr("x1",x(ms)).attr("x2",x(ms)).style("display",null);
       tip.style("display",null).style("left",Math.min(px+12,w-190)+"px").style("top","8px")
          .html(`<b>${fmtHM(new Date(ms))} UTC</b><br>${ms<=t0?"observed":"actually happened"}: ${v==null?"missing":v.toFixed(1)+" mg/L"}`);
@@ -631,6 +661,41 @@ function buildEvidence(){
     <li><b>Weather helps the 24 h forecast, but through sunlight and temperature more than rain</b> (${Math.round(w.atmos*1000)/10}% from temperature and sunlight, ${Math.round(w.rain*1000)/10}% from rain), and it does not improve low-oxygen alerts.</li></ul>`;
 }
 
+/* ---------- live mode ---------- */
+function toRow(rep){
+  let fl = 0; D.flag_keys.forEach((k,b)=>{ if(rep.fault_flags && rep.fault_flags[k]) fl |= (1<<b); });
+  return {p:rep.p_low_do_within_24h, do:rep.latest_do_mgL, obs:rep.observed_fraction_last_24h, fl,
+          f:(rep.forecasts||[]).map(x=>[x.low_mgL, x.median_mgL, x.high_mgL])};
+}
+function renderAll(){ renderControls(); renderKPIs(); renderMap(); renderQueue(); renderDetail(); }
+async function loadLive(force){
+  if(st.liveBusy) return;
+  if(!force && st.liveAt && Date.now()-st.liveAt < 5*60000) return;
+  st.liveBusy = true; if(force) st.live = {};
+  const queue = SITES.map(s=>s.id);
+  const worker = async ()=>{
+    while(queue.length){
+      const id = queue.shift();
+      try{
+        const ctl = new AbortController(), to = setTimeout(()=>ctl.abort(), 100000);
+        const res = await fetch(`${API}/forecast/${id}`, {signal:ctl.signal}); clearTimeout(to);
+        if(!res.ok) throw new Error("HTTP "+res.status);
+        const rep = await res.json();
+        st.live[id] = {report:rep, row:toRow(rep)};
+      }catch(e){ st.live[id] = {error:String(e && e.message || e)}; }
+      if(st.mode==="live") renderAll();
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  st.liveAt = Date.now(); st.liveBusy = false;
+  if(st.mode==="live") renderAll();
+}
+function setMode(m){
+  st.mode = m;
+  if(m==="live"){ stop(); loadLive(false); }
+  renderAll();
+}
+
 /* ---------- wiring ---------- */
 function setT(i){ st.t = Math.max(0,Math.min(N-1,i)); renderControls(); renderKPIs(); renderMap(); renderQueue(); renderDetail(); }
 function stop(){ st.playing = false; clearInterval(st.timer); renderControls(); }
@@ -649,6 +714,8 @@ function init(){
   st.t = best;
   const top = SITES.map(s=>({s,k:status(s,best),p:s.replay[best].p||0})).sort((a,b)=>ORDER[a.k]-ORDER[b.k]||b.p-a.p)[0];
   st.site = top.s.id;
+  document.querySelectorAll("#mode button").forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+  $("live-refresh").onclick = ()=>loadLive(true);
   $("slider").oninput = e=>{ stop(); setT(+e.target.value); };
   $("prev").onclick = ()=>{ stop(); setT(st.t-1); };
   $("next").onclick = ()=>{ stop(); setT(st.t+1); };
@@ -670,6 +737,7 @@ function init(){
   $("tab-network").onclick = ()=>{ show("network"); try{ history.replaceState(null,"","#network"); }catch(e){} };
   $("tab-evidence").onclick = ()=>{ show("evidence"); try{ history.replaceState(null,"","#evidence"); }catch(e){} };
   if(location.hash==="#evidence") show("evidence");
+  if(location.hash==="#live") setMode("live");
   addEventListener("resize", ()=>{ if(st.tab==="network") renderDetail(); });
   renderControls(); renderKPIs(); renderMap(); renderQueue(); renderDetail(); buildEvidence();
 }

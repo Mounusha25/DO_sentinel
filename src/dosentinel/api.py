@@ -98,6 +98,9 @@ def _respond(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float, live: b
     except ValueError as e:
         raise HTTPException(422, str(e))
     res["input_health"] = input_health(frame)
+    hv = frame["do"][frame.index.minute == 0].iloc[-72:]  # last three days, hourly, for charts
+    res["history"] = {"start": hv.index[0].isoformat() if len(hv) else None, "step_hours": 1,
+                      "do": [None if pd.isna(v) else round(float(v), 2) for v in hv.to_numpy()]}
     res["data_age_minutes"] = data_age_minutes(frame.index[-1]) if live else None
     if live and log_path() is not None:
         log_forecast(res, log_path())

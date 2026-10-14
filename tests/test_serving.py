@@ -99,6 +99,7 @@ def test_api_roundtrip(bundle, tmp_path, monkeypatch):
     assert r.status_code == 200
     body = r.json()
     assert body["alert_cutoff"] == pytest.approx(1 / 6) and len(body["forecasts"]) == 5
+    assert body["history"]["step_hours"] == 1 and 1 <= len(body["history"]["do"]) <= 72
     assert body["caveats"] and body["model"]["role"] == "test"
     assert c.post("/forecast/NOPE", json={"series": series}).status_code == 404
     assert c.post("/forecast/S-1", json={"series": {"99999": []}}).status_code == 422
