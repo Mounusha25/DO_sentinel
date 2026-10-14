@@ -1,0 +1,609 @@
+{
+ "created": "2026-10-14T05:50:08+00:00",
+ "source": "USGS OGC API (api.waterdata.usgs.gov) continuous collection; Open-Meteo archive and previous-runs APIs",
+ "files": {
+  "data/clean/USGS-01184000_00010.parquet": {
+   "sha256": "a60186bc39d567677832ba7918933f1521dccb2014dca929206c7aa99a01266e",
+   "bytes": 1656178,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-01184000_00060.parquet": {
+   "sha256": "558781ecdb3dca27cd70f35c801a13c3fc2ff968320b1835dd7faae51eec0f1b",
+   "bytes": 1772801,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-01184000_00095.parquet": {
+   "sha256": "bc17ad0ac9f762b07831193e407ca20c9ff8950196d7227d9d6607a3740628bc",
+   "bytes": 1651894,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-01184000_00300.parquet": {
+   "sha256": "ad7936a5c35a53865aa4f5f09134a49ae2989d49d0092911dfc5fe706e3689e1",
+   "bytes": 1625006,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-01184000_63680.parquet": {
+   "sha256": "b7027613563d0821ca2d51e9dc33b7d105b8992be112b54c2af00858bbb8f5fd",
+   "bytes": 1725213,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-01654500_00010.parquet": {
+   "sha256": "860b48879a74e738cd2530d905885461f8c18caee576130bef925234d45868b5",
+   "bytes": 1709640,
+   "rows": 175200,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-01654500_00060.parquet": {
+   "sha256": "cdeb5fa2e14ce128fdf62aff197f2fd7fc0cfe09b3bb8595f701d5aae555fda9",
+   "bytes": 1641658,
+   "rows": 175200,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-01654500_00095.parquet": {
+   "sha256": "1efb38f6ad9a419bef25364555a3bae96d309d3b7d7c4cf2cb752577fb3c3270",
+   "bytes": 1728090,
+   "rows": 175200,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-01654500_00300.parquet": {
+   "sha256": "7d65c2ba7a1290b264c24430337a983e6767ab3afb97fca2ac3b909fcbba75e3",
+   "bytes": 1671257,
+   "rows": 175200,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-01654500_63680.parquet": {
+   "sha256": "a1eb231e9c838e5e8f91e067711b6bb9ec4f7cc0fbcccb593f62470562575935",
+   "bytes": 1735654,
+   "rows": 175200,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-02110400_00010.parquet": {
+   "sha256": "adeb631385cfe045b3939ddc585e004030aa2d8139480d4fcdd2ce5b401ad999",
+   "bytes": 1738663,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02110400_00095.parquet": {
+   "sha256": "2a26c46e1165a98199455854925b05a322520a51b357c323d9a8a31282d3a523",
+   "bytes": 1757346,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02110400_00300.parquet": {
+   "sha256": "b61cdcf8e4f7f6d5e742490eeba275ab97b3ef12bcb5560a4eb08d25746f9cc3",
+   "bytes": 1735214,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02110704_00010.parquet": {
+   "sha256": "c891f3bb479f3a6edce15c4ce5e3fddcd6c6a93ec33a899bd4fd277de56e47c1",
+   "bytes": 1664161,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02110704_00095.parquet": {
+   "sha256": "98807c186e7d04d4e295a516b8182d2f27b60a880328f30253ce29c9be4dbbd1",
+   "bytes": 1656031,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02110704_00300.parquet": {
+   "sha256": "4521a45582cba4116d799fd3f8557a172cb1e0f6fac1f509861dd25ee1cccbfc",
+   "bytes": 1637563,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02110704_63680.parquet": {
+   "sha256": "af1c89ba97864d2f5a5852aada8be49a6babbf0cf7f7e3c8088617b6bc997164",
+   "bytes": 1723692,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02336313_00010.parquet": {
+   "sha256": "614e86bd092c2b65e927a23dbf9e3c5ed0e1c3e79307a7fdad3ac9d24e67414c",
+   "bytes": 1710825,
+   "rows": 175199,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:30:00+00:00"
+  },
+  "data/clean/USGS-02336313_00060.parquet": {
+   "sha256": "55b8e3119adcd41d505774dabb16870a0a7d6b584c8ef9c3aa5fe65d0d4338ee",
+   "bytes": 1415665,
+   "rows": 146067,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2025-12-12T16:30:00+00:00"
+  },
+  "data/clean/USGS-02336313_00095.parquet": {
+   "sha256": "23dd42a06798ca8cc41ffa7b53c40478f231d53295187a1ef7bbf4c976df671a",
+   "bytes": 1723873,
+   "rows": 175199,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:30:00+00:00"
+  },
+  "data/clean/USGS-02336313_00300.parquet": {
+   "sha256": "9b68b29100f65c5feb07c6d2f4adc713b78719d0483ad7646fb52392faad4c42",
+   "bytes": 1655113,
+   "rows": 175199,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:30:00+00:00"
+  },
+  "data/clean/USGS-02336313_63680.parquet": {
+   "sha256": "97eb5fff049f3239be7abe7025058d52dc76c38ee3e7ecc0b41eb04eccd82fe5",
+   "bytes": 1784290,
+   "rows": 175199,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:30:00+00:00"
+  },
+  "data/clean/USGS-02344630_00010.parquet": {
+   "sha256": "80d14e0baf55e400d2c4f3f5803cba21ea814c3a6b5a0be86fcd9c8f39efe94c",
+   "bytes": 1684710,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02344630_00060.parquet": {
+   "sha256": "119e530275a4fc00b08a95df47e1a95a66572426eb7e65d6f6660865576e1bd0",
+   "bytes": 1729303,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02344630_00095.parquet": {
+   "sha256": "8be26d906e8c45adec8f3b5881745399b67e6a43dc50c639e4162d9b58a6e7da",
+   "bytes": 1602255,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02344630_00300.parquet": {
+   "sha256": "d33780fad13d2a9c02ae4a67cff426237261c6325268488a460e07b19af823fa",
+   "bytes": 1626998,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-02344630_63680.parquet": {
+   "sha256": "62b2f83761478bdea5b084664f94ac7ffb132b072fff48d23ac43dd24174b4de",
+   "bytes": 1749282,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-03290500_00010.parquet": {
+   "sha256": "c25677c631f2706de1a018a5b370a55ee50eb75aef4abf0a2f9de2cb2dbf025b",
+   "bytes": 1671056,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-03290500_00060.parquet": {
+   "sha256": "58a4b668d124303ca3170f15668440ad74224eccf084f77877cd1c2c912ef5cd",
+   "bytes": 1760134,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-03290500_00095.parquet": {
+   "sha256": "b11972e482a11a241d01b34b8481ec1c7ef8cbec16b980160d078c1f7f3f47b4",
+   "bytes": 1705905,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-03290500_00300.parquet": {
+   "sha256": "4acda4fdb4696bd376cc7ddfdec2504e3550d575ee5cd1ef05588f6e303e581f",
+   "bytes": 1683490,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-03290500_63680.parquet": {
+   "sha256": "73c0c9d7e94828854594cc8c313814bb243f3d97f98e01f0657fb2891b196660",
+   "bytes": 1773244,
+   "rows": 175139,
+   "start": "2021-10-13T19:30:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-03293500_00010.parquet": {
+   "sha256": "e66a87d004ecbc04055438609912b9ee4e6ff2da4e1e787b72e1b7297b8b3360",
+   "bytes": 1706122,
+   "rows": 175196,
+   "start": "2021-10-13T04:30:00+00:00",
+   "end": "2026-10-12T03:15:00+00:00"
+  },
+  "data/clean/USGS-03293500_00060.parquet": {
+   "sha256": "8abc1db8eecdd27f6bf917d8f945967d7239e228ec0cdc16982dc5270428ccd3",
+   "bytes": 1717800,
+   "rows": 175196,
+   "start": "2021-10-13T04:30:00+00:00",
+   "end": "2026-10-12T03:15:00+00:00"
+  },
+  "data/clean/USGS-03293500_00095.parquet": {
+   "sha256": "cc60e2b3e3f60ba4d6d0f8b93927e05bf86ff82050c8675449bdd6b3b78134c6",
+   "bytes": 1763981,
+   "rows": 175196,
+   "start": "2021-10-13T04:30:00+00:00",
+   "end": "2026-10-12T03:15:00+00:00"
+  },
+  "data/clean/USGS-03293500_00300.parquet": {
+   "sha256": "1d52a9f03d65a7343aaa1a3e19e8ac697b39f4365c6ebeeb0d3f1c28398b7dae",
+   "bytes": 1665332,
+   "rows": 175196,
+   "start": "2021-10-13T04:30:00+00:00",
+   "end": "2026-10-12T03:15:00+00:00"
+  },
+  "data/clean/USGS-03293500_63680.parquet": {
+   "sha256": "6cecc88d7879636ed27e55f43544af6e97d338ae6096ceb4ff89ce7396191a6d",
+   "bytes": 1356188,
+   "rows": 128200,
+   "start": "2023-02-14T17:30:00+00:00",
+   "end": "2026-10-12T03:15:00+00:00"
+  },
+  "data/clean/USGS-03432100_00010.parquet": {
+   "sha256": "821b53c3a8c9224334011e8da2f446df5ced00414cf6b2fbcc1bf2bb391bfeea",
+   "bytes": 653605,
+   "rows": 64827,
+   "start": "2024-12-05T21:30:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-03432100_00060.parquet": {
+   "sha256": "e860dafec9f1758e6429fbe5b85117be1aae4d158d34c70ba985d98deee3b6f3",
+   "bytes": 657330,
+   "rows": 62275,
+   "start": "2024-12-05T21:30:00+00:00",
+   "end": "2026-09-15T14:00:00+00:00"
+  },
+  "data/clean/USGS-03432100_00095.parquet": {
+   "sha256": "6b4d5500e1b7efacfd2918086446fee09c6ef7d658a2652b9831a651e6742dcd",
+   "bytes": 653150,
+   "rows": 64824,
+   "start": "2024-12-05T22:15:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-03432100_00300.parquet": {
+   "sha256": "1651b75c8fb91fd67d44da51eea309c45e515f357232ef1875cd50691b542a63",
+   "bytes": 643988,
+   "rows": 64820,
+   "start": "2024-12-05T21:30:00+00:00",
+   "end": "2026-10-12T02:15:00+00:00"
+  },
+  "data/clean/USGS-03432100_63680.parquet": {
+   "sha256": "2386f68b5ee1d0382444fafbb671605661be6880409d3276de0c660e8709b548",
+   "bytes": 671938,
+   "rows": 64827,
+   "start": "2024-12-05T21:30:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-05576195_00010.parquet": {
+   "sha256": "236bfa050cfd8d0053ab3a535b3bd9345b3302022b7a7ecca0d71d370e5daf49",
+   "bytes": 1659233,
+   "rows": 168425,
+   "start": "2021-12-22T18:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-05576195_00095.parquet": {
+   "sha256": "81903327cb0ea18cfff78a7159dd2c49557cea4f7db71d460bc5f31234c6b1c1",
+   "bytes": 1680199,
+   "rows": 168425,
+   "start": "2021-12-22T18:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-05576195_00300.parquet": {
+   "sha256": "d8be06b26d9fad005b839d66a2347be47b4f9fcce9a6c5f59d42c2bf9c61e4a1",
+   "bytes": 1656717,
+   "rows": 168425,
+   "start": "2021-12-22T18:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-05576195_63680.parquet": {
+   "sha256": "c89eff1313d3f87bf3b6ea4380f01dd9d69784099313b1dc61a8a08672e9c101",
+   "bytes": 1756408,
+   "rows": 168425,
+   "start": "2021-12-22T18:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-07143672_00010.parquet": {
+   "sha256": "d74f7f6570246a11f1fe03971863624b37fdbb2cbc83d41213c63131b5a57218",
+   "bytes": 1673438,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-07143672_00060.parquet": {
+   "sha256": "1a81c122f1591f89093ecf365e1d90cb04b06259a4a5ada0d40b2da6fe5c6cbf",
+   "bytes": 1700339,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-07143672_00095.parquet": {
+   "sha256": "47f5f9680dbe9a36bb7b9d3ab7b807743265b6a43879c5d5e7b8f4823de83a6b",
+   "bytes": 1671247,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-07143672_00300.parquet": {
+   "sha256": "e61b6911db0364977bece933a6d477c69fdac8bd0bf0290dfac998de7b5c4032",
+   "bytes": 1628203,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-07143672_63680.parquet": {
+   "sha256": "f5c7f84e898aa9d866a5b6a7272225a5babdf5554bb90b815f66e69af8011cea",
+   "bytes": 1721078,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08065350_00010.parquet": {
+   "sha256": "0bd0b372979886f7e69bac928a4eb0a0c6fb3ca304828d498c1b24146680673d",
+   "bytes": 1651963,
+   "rows": 175200,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-08065350_00060.parquet": {
+   "sha256": "e3526af9b1fa3f30ef16a3e50a9693b007e4f1281ab1f22f4ccc56569325c0a6",
+   "bytes": 1785954,
+   "rows": 175198,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:15:00+00:00"
+  },
+  "data/clean/USGS-08065350_00095.parquet": {
+   "sha256": "b460162fc4bc4e1cdd7ed898484117173363f2230d72c6a52d1bfa4c2488773d",
+   "bytes": 1727605,
+   "rows": 175200,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-08065350_00300.parquet": {
+   "sha256": "7e0795f8d904cdb1c6f7b12809d983931c1c8fab3783eecbb731b10047065c78",
+   "bytes": 1627580,
+   "rows": 175200,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-08065350_63680.parquet": {
+   "sha256": "ed2989b7eadf7d37b6b5421e6b68d0dcbeb9f291f34160c35a263967c50be88a",
+   "bytes": 142431,
+   "rows": 12112,
+   "start": "2026-06-08T00:00:00+00:00",
+   "end": "2026-10-12T03:45:00+00:00"
+  },
+  "data/clean/USGS-08068000_00010.parquet": {
+   "sha256": "a26dd7ef53e0ecd7cad576cd32b6cc4ed004eb33ab24954277ab30cecbf2eb21",
+   "bytes": 1712474,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08068000_00060.parquet": {
+   "sha256": "648605c260647b8ff2ad7d89b12e84031687b2cdb8184106467abe508716928b",
+   "bytes": 1783226,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08068000_00095.parquet": {
+   "sha256": "f6db0be0e7b04b9eada37c77f09376d4b4e49dd81935a7c1c57b6d88b5903ee0",
+   "bytes": 1776760,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08068000_00300.parquet": {
+   "sha256": "e5b254c669b6624ced6f5525ed0fa525a37b3f76ec7d2df2bc369105722e57bc",
+   "bytes": 1681640,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08068000_63680.parquet": {
+   "sha256": "9b9a81de5b186d50105b490f0f28469b8bc2967a72cd00eba071960545bfb4db",
+   "bytes": 1786835,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08211200_00010.parquet": {
+   "sha256": "edaf8571e7ef72e8800ff5b5b0f425723a7b6cc262cb8c05f3cfb0a93bdae3b3",
+   "bytes": 1670250,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08211200_00060.parquet": {
+   "sha256": "62b4769e9cad58b8841345c14c73492b8c628fa5d292ae0f2af599f2f63c5d52",
+   "bytes": 1697808,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08211200_00095.parquet": {
+   "sha256": "0187aadb63d242e1366b63209ad216ceb268faee8816f549ccec3ae1297147b9",
+   "bytes": 1662506,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08211200_00300.parquet": {
+   "sha256": "c12b2d903f0a2499007e1d7094bff4fa3042d8b36f406431a2bfd423c06bc67e",
+   "bytes": 1645551,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-08211200_63680.parquet": {
+   "sha256": "32e4d438e1bb04a0f717f87198e9ad0aebc5d334fa4537ab83204be210ba5aa1",
+   "bytes": 1784321,
+   "rows": 175201,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T04:00:00+00:00"
+  },
+  "data/clean/USGS-10133650_00010.parquet": {
+   "sha256": "4a3711bbdc08dfcd95479d52c385f30717d5c60adc19ea64fb7009f0447f4952",
+   "bytes": 1682180,
+   "rows": 175199,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:30:00+00:00"
+  },
+  "data/clean/USGS-10133650_00060.parquet": {
+   "sha256": "4699eebbd0b041393526ffbe5f839aa87b7d0b86015661853cbe421657043965",
+   "bytes": 1748778,
+   "rows": 175199,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:30:00+00:00"
+  },
+  "data/clean/USGS-10133650_00095.parquet": {
+   "sha256": "2e36fb54383b06110d2a4bd99e59bf04b3321ee8d40ef1c7b3db45b53969d346",
+   "bytes": 1762793,
+   "rows": 175199,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:30:00+00:00"
+  },
+  "data/clean/USGS-10133650_00300.parquet": {
+   "sha256": "aa3f22f0937b1ab1cb999ad30edb192cdc347b331efd53582b4aafd4d674845a",
+   "bytes": 1681859,
+   "rows": 175199,
+   "start": "2021-10-13T04:00:00+00:00",
+   "end": "2026-10-12T03:30:00+00:00"
+  },
+  "data/clean/USGS-10133650_63680.parquet": {
+   "sha256": "b7d6844c591a57719b645f76f5fe90f33da5145fec96b95982a6512c2be5aae9",
+   "bytes": 69731,
+   "rows": 6437,
+   "start": "2026-06-11T16:45:00+00:00",
+   "end": "2026-08-17T17:45:00+00:00"
+  },
+  "data/weather/USGS-01184000.parquet": {
+   "sha256": "6ed5a2fac3c1425533c63b94cca678a026147683365322271b640d4d1050f1ac",
+   "bytes": 604399,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-01654500.parquet": {
+   "sha256": "b18e7d6d83fcd8cec163794905422f33f24fb78e407f0763f8065f4a3d150be7",
+   "bytes": 599528,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-02110400.parquet": {
+   "sha256": "16f15979ac34614612b051b9396ee884c81940f5e96a7b53fb97fd4f9d96c5da",
+   "bytes": 593198,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-02110704.parquet": {
+   "sha256": "fd449e7e1768d16e2d56ce8964b1a8026a8ac717c9d3475b57f425c2648a5935",
+   "bytes": 592863,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-02336313.parquet": {
+   "sha256": "a93c3a68f31969ddfd2a1748b0903170c0d58c86b558d228f219a311a1cc14fb",
+   "bytes": 594716,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-02344630.parquet": {
+   "sha256": "ca56a0257b81d43a4d7a77b09db2ef2dfbdbf0993e622a66294134c884903035",
+   "bytes": 594978,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-03290500.parquet": {
+   "sha256": "2a23d44f48b74db61db95542e290b54a36888df80ef6626dba451ed3adc29a77",
+   "bytes": 603917,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-03293500.parquet": {
+   "sha256": "f370dbba6afc1ac0a7b952cf13aced1d4cdaf338731c3872595023fd271bb7f6",
+   "bytes": 602824,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-05576195.parquet": {
+   "sha256": "5219460ff0e07641939c2e421f1faba406d23f944a62236903a849447129ab76",
+   "bytes": 603217,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-07143672.parquet": {
+   "sha256": "0cd091f728fbd56a02425f525ed9ad4f672817fd1f1fc7734ddd7456c3634e42",
+   "bytes": 600635,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-08065350.parquet": {
+   "sha256": "3b17850d203132b4c7b96e7527a302b041b1283ec2a589dd4f8f2c3ca3944623",
+   "bytes": 600410,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-08068000.parquet": {
+   "sha256": "66de40d5025f5d9d694f80353ca048d4cf4fe9b9e33a43bee62613df7edfcd90",
+   "bytes": 593648,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-08211200.parquet": {
+   "sha256": "e3ecfd6fcf776ff65b990f37ceeddbea87a3736a76e7c0a83033f2c7a843eb52",
+   "bytes": 590068,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "data/weather/USGS-10133650.parquet": {
+   "sha256": "82c1d9c7abef9f7359946d03038b208ae984b4c415c99066db730124fe6cebed",
+   "bytes": 604606,
+   "rows": 44136,
+   "start": "2021-10-01T00:00:00+00:00",
+   "end": "2026-10-13T23:00:00+00:00"
+  },
+  "config/sites.yaml": {
+   "sha256": "1ea574082cb58cec479a34dfec5fee18e991b854e3c93940e14fbc387b7f1fea",
+   "bytes": 10552
+  },
+  "data/site_coords.json": {
+   "sha256": "9fa0967ca65bab658e41f4f68ee89d4315bfef9d2acf508c94f42c3b537a1402",
+   "bytes": 1181
+  }
+ }
+}
