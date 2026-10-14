@@ -2,9 +2,14 @@
 
 Short-horizon **dissolved oxygen (DO) forecasting**, **sensor-fault detection**, and an **alert decision layer** on public USGS continuous water-quality data, packaged as a reproducible MLOps pipeline.
 
-Status: early. Ingestion, site selection, quality flags, walk-forward baselines, and a quantile gradient-boosting forecaster exist; a fault-detection benchmark exists (jumps and flatlines are detected; slow drift is not reliably detectable); a FastAPI service is built (see Serving);  the decision layer is built but did not beat a simple threshold rule.
+**Live:** [Dashboard](https://mounusha25.github.io/DO_sentinel/) · [Case study](https://mounusha25.github.io/DO_sentinel/case-study.html) · [API docs](https://do-sentinel-api.onrender.com/docs) · [Model card](MODEL_CARD.md) · [Problem definition](PROBLEM.md) · License: MIT
 
-> Case study (one self-contained page): [reports/case_study.html](reports/case_study.html). Exploratory analysis with figures: [reports/EDA.md](reports/EDA.md).
+[![DO Sentinel dashboard: map, triage queue and a forecast with its 80% interval](docs/assets/dashboard.png)](https://mounusha25.github.io/DO_sentinel/)
+
+
+Status: working end to end and deployed. Ingestion, quality flags, baselines, gradient-boosting forecasts with calibrated intervals, a weather experiment, a pretrained-model comparison, a fault-detection benchmark, a monitored API and an interactive dashboard are built and tested. Several results are negative and are reported as such (alerts barely beat a one-line rule; slow sensor drift is not detectable). Not done: a neural network trained from scratch, real labelled faults, and forward-holdout results.
+
+> Exploratory analysis with figures: [reports/EDA.md](reports/EDA.md). The free API server sleeps when idle, so its first request can take about a minute.
 >
 > See also [MODEL_CARD.md](MODEL_CARD.md) for intended use, results and limitations.
 >
@@ -239,6 +244,8 @@ Operating notes:
 
 ## Dashboard
 
+[![Evidence tab: error by horizon, calibration, alerts and what did not work](docs/assets/evidence.png)](https://mounusha25.github.io/DO_sentinel/#evidence)
+
 **`reports/dashboard.html`** is a standalone, interactive dashboard (open the file in a browser; no server). It replays *real* model output for the last 30 days of data across all 14 sites:
 
 * a network view: US map with each site's status (elevated risk, check sensor, no recent data, normal), a ranked triage queue, and counts you can click to filter;
@@ -294,3 +301,7 @@ The pretrained-model experiments (`run_chronos*.py`) need `chronos-forecasting`,
 - USGS is migrating from legacy `waterservices` to the OGC `api.waterdata.usgs.gov`; endpoints and field names may change. `discover_sites.py` and the client have been run against the live service (field names verified; `state_name`, not a state code, is the filter). Unauthenticated use is limited to 1,000 requests/hour; set `USGS_API_KEY`.
 - Not every site has all parameters; long gaps are common.
 - Provisional values change after ingestion; the pipeline must be idempotent and revision-aware.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The data are public USGS and Open-Meteo data; check their terms before redistributing derived data at scale.
