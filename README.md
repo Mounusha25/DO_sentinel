@@ -232,7 +232,7 @@ On Render: New > Blueprint, pick this repository; `render.yaml` sets the build, 
 
 Operating notes:
 
-* **Anonymous by default.** Without `USGS_API_KEY` the service uses USGS's unauthenticated limit (about 1,000 requests per hour per address); a live forecast pulls five series per site and is cached for five minutes. Never put a key in the repository.
+* **A USGS API key is required on a shared host.** Anonymous requests from a cloud address share a quota with other users of that address; the deployed service was answered with HTTP 429 and `Retry-After` of 2 to 11 minutes, so every live forecast failed. Create a free key at https://api.waterdata.usgs.gov/signup and set it as the `USGS_API_KEY` environment variable in the host's dashboard (never in the repository). With a key the limit is per key (1,000 requests per hour); a live forecast uses five requests per site and is cached for ten minutes. Without one the API returns 503 quickly, serves the last good data marked `stale` if it has any, and `POST /forecast/{site}` with your own series still works.
 * **Public and unauthenticated.** Anyone can call `/forecast`; payloads are capped at 20,000 observations, and CORS is limited to `DOSENTINEL_CORS`. Add authentication before using it for anything beyond a demonstration.
 * **Models do not update themselves.** They were trained through 2025-10 and calibrated on the following year; see the retraining policy in MODEL_CARD.md. Forecast logging (`DOSENTINEL_LOG`) writes to the container's disk, which is ephemeral on most free hosts.
 * **Free tiers sleep** after inactivity, so the first request after a pause can take about a minute.
