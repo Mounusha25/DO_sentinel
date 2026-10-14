@@ -16,3 +16,4 @@ models/
 logs/
 results_prev/
 results/*.parquet
+reports/dashboard/artifact.html

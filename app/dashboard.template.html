@@ -1,0 +1,678 @@
+<title>DO Sentinel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout concept: a network overview on top (map + ranked queue), the selected site's forecast beneath,
+   evidence on its own tab. Status is carried by shape and label as well as color. */
+:root{
+  --bg:#F3F6F8; --surface:#FFFFFF; --surface-2:#EAEFF3; --line:#D5DCE3; --line-2:#C4CDD6;
+  --ink:#11202B; --ink-2:#4A5B68; --ink-3:#5C6B78;
+  --model:#0773A8; --blend:#B8621B; --ref:#7B8A97;
+  --risk:#C2371B; --check:#9A6300; --nodata:#5F6F7D; --ok:#1B7A4F;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1720; --surface:#122230; --surface-2:#182C3B; --line:#25394A; --line-2:#33495B;
+    --ink:#E7EEF3; --ink-2:#A5B5C1; --ink-3:#8397A8;
+    --model:#2E9CC8; --blend:#CC7E2E; --ref:#8497A8;
+    --risk:#F0714F; --check:#D9A12F; --nodata:#8A9BAA; --ok:#46B885; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1720; --surface:#122230; --surface-2:#182C3B; --line:#25394A; --line-2:#33495B;
+  --ink:#E7EEF3; --ink-2:#A5B5C1; --ink-3:#8397A8;
+  --model:#2E9CC8; --blend:#CC7E2E; --ref:#8497A8;
+  --risk:#F0714F; --check:#D9A12F; --nodata:#8A9BAA; --ok:#46B885; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.app{max-width:1240px;margin:0 auto;padding-inline:16px;padding-block:0 56px}
+h1,h2,h3,h4,p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--model);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)} .faint{color:var(--ink-3)}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:20px;padding-block:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand svg{flex:none}
+.brand b{font-size:1.1rem;letter-spacing:-.01em;font-weight:700}
+.brand span{color:var(--ink-3);font-size:.82rem;display:block;line-height:1.2}
+.tabs{display:flex;gap:4px;margin-left:8px}
+.tab{border:0;background:none;padding:8px 12px;border-radius:8px;color:var(--ink-2);font-weight:500}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.top .spacer{flex:1}
+.badge{font:500 .72rem var(--mono);letter-spacing:.04em;text-transform:uppercase;padding:5px 9px;border-radius:999px;
+  background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink-2);white-space:nowrap}
+.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+
+/* controls */
+.controls{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;margin-top:18px}
+.ctl{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.ctl-title{font:500 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.timeline{display:flex;align-items:center;gap:10px}
+.timeline .when{font-weight:600;white-space:nowrap}
+input[type=range]{flex:1;min-width:0;accent-color:var(--model)}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:6px 11px;font:500 .85rem var(--mono);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.ctl-note{font-size:.8rem;color:var(--ink-3);margin-top:6px}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:left;
+  display:grid;gap:2px;min-width:0}
+.kpi[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+.kpi .n{font:600 1.9rem/1.1 var(--mono);display:flex;align-items:baseline;gap:6px}
+.kpi .n small{font:400 .85rem var(--mono);color:var(--ink-3)}
+.kpi .l{display:flex;align-items:center;gap:7px;font-weight:600;font-size:.88rem}
+.kpi .d{color:var(--ink-3);font-size:.8rem}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;min-width:0}
+.card-h{padding:12px 14px 0;display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.card-h h3{font-size:.95rem;font-weight:600}
+.card-h .sub{color:var(--ink-3);font-size:.8rem}
+.main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:stretch}
+.queue-card{position:relative;min-height:440px}
+.queue-card .queue{position:absolute;left:0;right:0;bottom:0;top:44px;max-height:none}
+.map-wrap{padding:6px 10px 10px;position:relative}
+#map{width:100%;height:auto;display:block}
+.state{fill:var(--surface-2);stroke:var(--line-2);stroke-width:.7}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:0 14px 12px;font-size:.8rem;color:var(--ink-2)}
+.legend span{display:flex;align-items:center;gap:6px}
+.site{cursor:pointer}
+.site .halo{fill:none;stroke-width:1.5;opacity:.5}
+@media (prefers-reduced-motion:no-preference){ .site.risk .halo{animation:pulse 2.2s ease-out infinite;transform-box:fill-box;transform-origin:center}}
+@keyframes pulse{0%{transform:scale(.8);opacity:.6}100%{transform:scale(2.1);opacity:0}}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);padding:7px 10px;border-radius:8px;
+  font-size:.8rem;line-height:1.35;max-width:260px;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.tip b{font-weight:600}
+
+/* queue */
+.queue{max-height:520px;overflow:auto;padding:8px 8px 10px}
+.qrow{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;
+  background:none;border:1px solid transparent;border-radius:10px;padding:8px 8px}
+.qrow:hover{background:var(--surface-2)}
+.qrow[aria-current="true"]{background:var(--surface-2);border-color:var(--line-2)}
+.qname{font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qmeta{color:var(--ink-3);font-size:.78rem;display:flex;gap:8px;align-items:center;margin-top:3px;min-width:0}
+.bar{position:relative;height:6px;background:var(--surface-2);border-radius:99px;flex:1;min-width:60px;overflow:visible}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+.bar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.7}
+.qval{font:500 .85rem var(--mono);text-align:right;line-height:1.25}
+.qval small{display:block;color:var(--ink-3);font-size:.72rem}
+.chip{font:600 .72rem var(--sans);padding:3px 8px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.chip.risk{color:var(--risk);background:color-mix(in srgb,var(--risk) 13%,var(--surface))}
+.chip.check{color:var(--check);background:color-mix(in srgb,var(--check) 14%,var(--surface))}
+.chip.nodata{color:var(--nodata);background:color-mix(in srgb,var(--nodata) 14%,var(--surface))}
+.chip.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,var(--surface))}
+
+/* detail */
+.detail{margin-top:16px}
+.detail-h{padding:14px 16px 4px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.detail-h h2{font-size:1.2rem;letter-spacing:-.01em}
+.detail-h .sub{color:var(--ink-3);font-size:.84rem;margin-top:2px}
+.detail-g{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(250px,1fr);gap:8px 24px;padding:6px 16px 16px}
+.stack{display:grid;gap:14px;align-content:start;padding-top:8px}
+.big{font:600 2.3rem/1 var(--mono);letter-spacing:-.02em}
+.gauge{position:relative;height:10px;background:var(--surface-2);border-radius:99px;margin-top:10px}
+.gauge i{position:absolute;inset:0 auto 0 0;border-radius:99px}
+.gauge u{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink)}
+.gauge-l{display:flex;justify-content:space-between;font-size:.74rem;color:var(--ink-3);margin-top:6px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:.88rem}
+.kv dt{color:var(--ink-2)} .kv dd{margin:0;font:500 .88rem var(--mono);text-align:right}
+.checks{display:grid;gap:6px;font-size:.84rem;margin:0;padding:0;list-style:none}
+.checks li{display:flex;gap:8px;align-items:flex-start;color:var(--ink-2)}
+.checks li.bad{color:var(--check);font-weight:600}
+.outcome{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.88rem;background:var(--surface-2)}
+.outcome b{font-weight:600}
+.key{display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem;color:var(--ink-2);margin:2px 0 0 40px}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.section-t{font:500 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+svg text{font-family:var(--mono)}
+.ax text{fill:var(--ink-3);font-size:11px}
+.ax .domain{stroke:var(--line-2)} .ax .tick line{stroke:var(--line-2)}
+.grid line{stroke:var(--line)} .grid .domain{display:none}
+.lbl{fill:var(--ink-2);font-size:11px}
+.val{fill:var(--ink-2);font-size:9.5px;paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+
+/* evidence */
+.ev-intro{margin-top:20px;max-width:70ch;color:var(--ink-2)}
+.ev-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.ev-card{padding-bottom:12px}
+.ev-card h3{padding:14px 16px 0;font-size:.98rem}
+.ev-card p.cap{padding:2px 16px 0;color:var(--ink-2);font-size:.85rem}
+.ev-card svg{display:block;width:100%;height:auto;padding:6px 10px 0}
+.ev-card details{padding:6px 16px 0;font-size:.82rem;color:var(--ink-2)}
+.ev-card table{border-collapse:collapse;width:100%;margin-top:6px;font:.78rem var(--mono)}
+.ev-card td,.ev-card th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right}
+.ev-card th:first-child,.ev-card td:first-child{text-align:left}
+.notworked{margin-top:16px;padding:16px 18px}
+.notworked h3{font-size:1rem;margin-bottom:8px}
+.notworked ul{margin:0;padding-left:1.1rem;display:grid;gap:8px;color:var(--ink-2);max-width:78ch}
+.notworked b{color:var(--ink)}
+.legend-i{display:flex;gap:14px;flex-wrap:wrap;padding:6px 16px 0;font-size:.8rem;color:var(--ink-2)}
+.legend-i i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+footer{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-3);font-size:.82rem;max-width:90ch}
+footer a{color:var(--ink-2)}
+
+@media (max-width:980px){
+  .controls,.main,.detail-g,.ev-grid{grid-template-columns:minmax(0,1fr)}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .queue-card{min-height:0}
+  .queue-card .queue{position:static;max-height:420px}
+}
+@media (max-width:520px){
+  .tabs{margin-left:0;width:100%}
+  .top .spacer{display:none}
+  .timeline{flex-wrap:wrap}
+  .big{font-size:2rem}
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="var(--ink)"/>
+        <path d="M16 6c4 5.2 7 8.6 7 12.2A7 7 0 0 1 9 18.2C9 14.600 12 11.200 16 6z" fill="var(--surface)"/>
+        <path d="M11 19.500h3l1.500-3 2.500 5 1.500-2H21" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div><b>DO Sentinel</b><span>Dissolved-oxygen watch · 14 USGS stream sites</span></div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" id="tab-network" aria-selected="true">Network</button>
+      <button class="tab" role="tab" id="tab-evidence" aria-selected="false">Evidence</button>
+    </nav>
+    <div class="spacer"></div>
+    <span class="badge" id="mode-badge">Replay · real forecasts</span>
+    <button class="iconbtn" id="theme" title="Switch light and dark" aria-label="Switch light and dark">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.200 3a7 7 0 0 0 9.800 9.800z"/></svg>
+    </button>
+  </header>
+
+  <main id="view-network">
+    <div class="controls">
+      <div class="ctl">
+        <div class="ctl-title">Forecast issued</div>
+        <div class="timeline">
+          <button class="iconbtn" id="prev" aria-label="Previous time">‹</button>
+          <button class="iconbtn" id="play" aria-label="Play through time">▶</button>
+          <button class="iconbtn" id="next" aria-label="Next time">›</button>
+          <input type="range" id="slider" min="0" max="0" step="1" aria-label="Forecast issue time">
+          <span class="when mono" id="when"></span>
+        </div>
+        <div class="ctl-note" id="replay-note"></div>
+      </div>
+      <div class="ctl">
+        <div class="ctl-title">Cost of a missed event vs a false alert</div>
+        <div class="seg" id="ratio" role="group" aria-label="Cost ratio">
+          <button data-r="3" aria-pressed="false">3 : 1</button>
+          <button data-r="10" aria-pressed="true">10 : 1</button>
+          <button data-r="30" aria-pressed="false">30 : 1</button>
+        </div>
+        <div class="ctl-note" id="cutoff-note"></div>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis" aria-label="Network status"></div>
+
+    <div class="main">
+      <section class="card" aria-label="Map of sites">
+        <div class="card-h"><h3>Sites</h3><span class="sub">Status for the next 24 hours</span></div>
+        <div class="map-wrap"><svg id="map" viewBox="0 0 975 610" role="img" aria-label="Map of the 14 monitored sites"></svg><div class="tip" id="tip" hidden></div></div>
+        <div class="legend" id="legend"></div>
+      </section>
+      <section class="card queue-card" aria-label="Triage queue">
+        <div class="card-h"><h3>Triage queue</h3><span class="sub" id="queue-sub"></span></div>
+        <div class="queue" id="queue"></div>
+      </section>
+    </div>
+
+    <section class="card detail" id="detail" aria-live="polite"></section>
+  </main>
+
+  <main id="view-evidence" hidden>
+    <p class="ev-intro">How well the system did over a full year of out-of-sample testing at all 14 sites, including the parts that did not work. Every figure is read from the saved result files.</p>
+    <div class="ev-grid" id="ev-grid"></div>
+    <section class="card notworked" id="notworked"></section>
+  </main>
+
+  <footer>
+    Data: USGS continuous water-quality observations (public); weather experiments use Open-Meteo. Replay shows real model output for the last 30 days
+    of data; models were trained on data before <span id="f-train"></span> and their interval and probability calibration used the following year, which
+    includes this replay window. Forecasts support a human decision and are not a compliance tool. Slow sensor drift is not detected.
+    <a href="https://github.com/Mounusha25/DO_sentinel" target="_blank" rel="noopener">Source, model card and methods on GitHub</a>.
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script id="data" type="application/json">/*__DATA__*/</script>
+<script id="atlas" type="application/json">/*__ATLAS__*/</script>
+<script>
+(function(){
+"use strict";
+if(!window.d3 || !window.topojson){
+  document.getElementById("detail").innerHTML='<p style="padding:16px">The charting libraries could not be loaded. Open this page with an internet connection.</p>';
+  return;
+}
+const D = JSON.parse(document.getElementById("data").textContent);
+const ATLAS = JSON.parse(document.getElementById("atlas").textContent);
+const HR = D.horizons, N = D.asofs.length, T = D.asofs.map(s=>new Date(s));
+const S0 = new Date(D.series_start).getTime(), HOUR = 3600000;
+const SITES = D.sites, BY = Object.fromEntries(SITES.map(s=>[s.id,s]));
+const BIT_MISSING = 1<<4;
+const LABEL = {risk:"Elevated risk", check:"Check sensor", nodata:"No recent data", ok:"Normal"};
+const ACTION = {risk:"Send a crew or issue an advisory.", check:"Schedule maintenance and do not act on this sensor's readings.",
+  nodata:"The feed or sensor is offline; no forecast can be made.", ok:"No action needed."};
+const FLAGTXT = ["Reading outside the plausible range or changing too fast","Value stuck unchanged for 72 hours or more",
+  "Sudden jump versus yesterday's pattern","Reading outside the 1-hour forecast band","Latest reading missing"];
+const fmtWhen = d3.utcFormat("%a %d %b · %H:%M UTC"), fmtDay = d3.utcFormat("%d %b"), fmtHM = d3.utcFormat("%d %b %H:%M");
+const st = {t:0, ratio:10, site:null, tab:"network", filter:null, playing:false, timer:null};
+const $ = id => document.getElementById(id);
+const cutoff = () => 1/(1+st.ratio);
+const pct = x => x==null ? "n/a" : Math.round(x*100)+"%";
+const f1 = x => x==null ? "n/a" : x.toFixed(1);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function status(s, i){
+  const r = s.replay[i], other = r.fl & ~BIT_MISSING;
+  if(other) return "check";
+  if((r.fl & BIT_MISSING) || r.do==null) return "nodata";
+  return (r.p!=null && r.p > cutoff()) ? "risk" : "ok";
+}
+function obs(s, ms){ const k = Math.round((ms - S0)/HOUR); return (k>=0 && k<s.series.length) ? s.series[k] : null; }
+function outcome(s, i){
+  const t0 = T[i].getTime(); let m = null, n = 0;
+  for(let h=1;h<=24;h++){ const v = obs(s, t0+h*HOUR); if(v!=null){ n++; m = m==null ? v : Math.min(m,v); } }
+  return n>=12 ? {min:m, event:m<5} : null;
+}
+function icon(kind, size){
+  const c = `var(--${kind})`, z = size||16;
+  const sh = {
+    risk:`<circle cx="8" cy="8" r="5.500" fill="${c}"/>`,
+    check:`<path d="M8 2.200 14.200 13H1.800z" fill="${c}"/>`,
+    nodata:`<circle cx="8" cy="8" r="5" fill="none" stroke="${c}" stroke-width="1.800" stroke-dasharray="2.600 2"/>`,
+    ok:`<circle cx="8" cy="8" r="4" fill="${c}" opacity=".85"/>`};
+  return `<svg width="${z}" height="${z}" viewBox="0 0 16 16" aria-hidden="true">${sh[kind]}</svg>`;
+}
+
+/* ---------- controls ---------- */
+function renderControls(){
+  $("slider").value = st.t;
+  $("when").textContent = fmtWhen(T[st.t]);
+  $("cutoff-note").textContent = `An alert is raised when the chance of DO below 5 mg/L in the next 24 h exceeds ${pct(cutoff())}.`;
+  document.querySelectorAll("#ratio button").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.r===st.ratio)));
+  $("play").textContent = st.playing ? "❚❚" : "▶";
+}
+
+/* ---------- kpis ---------- */
+function renderKPIs(){
+  const cnt = {risk:0,check:0,nodata:0,ok:0};
+  SITES.forEach(s=>cnt[status(s,st.t)]++);
+  const desc = {risk:"likely to fall below 5 mg/L", check:"readings look unreliable", nodata:"latest value missing", ok:"no action"};
+  $("kpis").innerHTML = ["risk","check","nodata","ok"].map(k=>`
+    <button class="kpi" data-k="${k}" aria-pressed="${st.filter===k}">
+      <span class="l">${icon(k,15)}${LABEL[k]}</span>
+      <span class="n">${cnt[k]}<small>of ${SITES.length}</small></span>
+      <span class="d">${desc[k]}</span></button>`).join("");
+  document.querySelectorAll(".kpi").forEach(b=>b.onclick=()=>{ st.filter = st.filter===b.dataset.k ? null : b.dataset.k; renderKPIs(); renderQueue(); });
+}
+
+/* ---------- map ---------- */
+const projection = d3.geoAlbersUsa().scale(1300).translate([487.5,305]);
+function buildMap(){
+  const svg = d3.select("#map");
+  const states = topojson.feature(ATLAS, ATLAS.objects.states);
+  svg.append("g").selectAll("path").data(states.features).join("path").attr("class","state").attr("d", d3.geoPath());
+  svg.append("g").attr("id","sites");
+  $("legend").innerHTML = ["risk","check","nodata","ok"].map(k=>`<span>${icon(k,14)}${LABEL[k]}</span>`).join("");
+}
+function markerPath(kind){
+  if(kind==="check") return "M0,-10 L10,8 L-10,8Z";
+  return null;
+}
+function renderMap(){
+  const g = d3.select("#sites");
+  const rows = SITES.map(s=>{ const p = projection([s.lon,s.lat]); return {s, x:p[0], y:p[1], k:status(s,st.t)}; });
+  const sel = g.selectAll("g.site").data(rows, d=>d.s.id);
+  const en = sel.enter().append("g").attr("class","site").attr("tabindex",0).attr("role","button");
+  en.append("circle").attr("class","halo").attr("r",10);
+  en.append("path").attr("class","mk");
+  en.append("circle").attr("class","hit").attr("r",16).attr("fill","transparent");
+  en.on("click",(e,d)=>select(d.s.id)).on("keydown",(e,d)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); select(d.s.id);} })
+    .on("mousemove",(e,d)=>showTip(e,d)).on("mouseleave",hideTip).on("focus",(e,d)=>showTip(e,d,true)).on("blur",hideTip);
+  const all = en.merge(sel);
+  all.attr("transform",d=>`translate(${d.x},${d.y})`).attr("class",d=>`site ${d.k}`)
+     .attr("aria-label",d=>`${d.s.name}: ${LABEL[d.k]}`);
+  all.select(".halo").attr("stroke",d=>`var(--${d.k})`).style("display",d=>d.k==="risk"?null:"none");
+  all.select(".mk").each(function(d){
+    const el = d3.select(this), c = `var(--${d.k})`, sel_ = d.s.id===st.site;
+    let shape;
+    if(d.k==="check") shape = "M0,-13 L13,10 L-13,10Z";
+    else shape = "M-9.5,0a9.5,9.5 0 1,0 19,0a9.5,9.5 0 1,0 -19,0";
+    el.attr("d", shape).attr("fill", d.k==="nodata" ? "var(--surface)" : c)
+      .attr("stroke", d.k==="nodata" ? c : "var(--surface)").attr("stroke-width", d.k==="nodata" ? 2.5 : 2.5)
+      .attr("stroke-dasharray", d.k==="nodata" ? "4 3" : null);
+  });
+  all.selectAll(".sel").remove();
+  all.filter(d=>d.s.id===st.site).append("circle").attr("class","sel").attr("r",20).attr("fill","none")
+     .attr("stroke","var(--ink)").attr("stroke-width",2);
+  all.selectAll("text.nm").remove();
+  all.filter(d=>d.s.id===st.site).append("text").attr("class","nm lbl").attr("y",-26).attr("text-anchor","middle")
+     .style("paint-order","stroke").style("stroke","var(--surface)").style("stroke-width","4px").text(d=>d.s.short);
+}
+function showTip(e, d, focus){
+  const r = d.s.replay[st.t], tip = $("tip"), wrap = tip.parentElement.getBoundingClientRect();
+  tip.hidden = false;
+  tip.innerHTML = `<b>${d.s.short}</b>, ${d.s.state}<br>${LABEL[d.k]} · ${pct(r.p)} chance of low DO<br>DO now ${f1(r.do)} mg/L`;
+  let x, y;
+  if(focus){ const b = e.target.getBoundingClientRect(); x = b.left - wrap.left + 20; y = b.top - wrap.top - 6; }
+  else { x = e.clientX - wrap.left + 14; y = e.clientY - wrap.top - 8; }
+  tip.style.left = Math.min(x, wrap.width-200)+"px"; tip.style.top = Math.max(0,y)+"px";
+}
+function hideTip(){ $("tip").hidden = true; }
+
+/* ---------- queue ---------- */
+const ORDER = {risk:0, check:1, nodata:2, ok:3};
+function renderQueue(){
+  const rows = SITES.map(s=>({s, k:status(s,st.t), r:s.replay[st.t]}))
+    .filter(d=>!st.filter || d.k===st.filter)
+    .sort((a,b)=> ORDER[a.k]-ORDER[b.k] || (b.r.p||0)-(a.r.p||0));
+  $("queue-sub").textContent = st.filter ? `Showing ${LABEL[st.filter].toLowerCase()} · click again to clear` : "Ranked by what needs attention first";
+  $("queue").innerHTML = rows.map(d=>{
+    const p = d.r.p==null ? 0 : d.r.p, col = `var(--${d.k})`;
+    return `<button class="qrow" data-id="${d.s.id}" aria-current="${d.s.id===st.site}">
+      <span>${icon(d.k,18)}</span>
+      <span style="min-width:0"><span class="qname" style="display:block">${d.s.short}</span>
+        <span class="qmeta"><span class="chip ${d.k}">${LABEL[d.k]}</span>
+          <span class="bar" title="chance of low DO in 24 h"><i style="width:${Math.min(100,p*100)}%;background:${col}"></i><u style="left:${cutoff()*100}%"></u></span></span></span>
+      <span class="qval">${pct(d.r.p)}<small>${f1(d.r.do)} mg/L</small></span></button>`;
+  }).join("") || '<p class="muted" style="padding:14px">No sites in this state at this time.</p>';
+  document.querySelectorAll(".qrow").forEach(b=>b.onclick=()=>select(b.dataset.id));
+}
+
+/* ---------- detail ---------- */
+function select(id){ st.site = id; renderMap(); renderQueue(); renderDetail(); }
+function renderDetail(){
+  const s = BY[st.site], i = st.t, r = s.replay[i], k = status(s,i), oc = outcome(s,i);
+  const flags = FLAGTXT.map((t,b)=>({t, on:!!(r.fl & (1<<b))}));
+  const outHtml = oc ? `<div class="outcome"><div class="section-t">What actually happened</div>
+      <b>${oc.event ? "Oxygen fell below 5 mg/L" : "Oxygen stayed above 5 mg/L"}</b> in the next 24 hours
+      (minimum <span class="mono">${oc.min.toFixed(1)}</span> mg/L).
+      ${k==="risk" ? (oc.event ? "The warning was right." : "The warning did not verify.") :
+        (k==="ok" ? (oc.event ? "No warning was raised: a miss." : "No event, no warning.") : "")}</div>`
+    : `<div class="outcome"><div class="section-t">What actually happened</div>Too few observations in the next 24 hours to say.</div>`;
+  $("detail").innerHTML = `
+    <div class="detail-h">
+      <div><h2>${s.name}</h2><div class="sub">${s.state} · ${s.regime} · ${Math.round(s.area).toLocaleString()} sq mi basin · low DO on ${pct(s.low_day_share)} of days</div></div>
+      <span class="chip ${k}" style="font-size:.82rem;padding:5px 11px">${icon(k,14)} ${LABEL[k]}</span>
+    </div>
+    <div class="detail-g">
+      <div><div class="section-t" style="margin-top:10px">Forecast with 80% interval</div><div id="fan" style="position:relative"></div>
+        <div class="key"><span><svg width="26" height="10"><line x1="1" x2="25" y1="5" y2="5" stroke="var(--ink)" stroke-width="2"/></svg>observed</span>
+          <span><svg width="26" height="10"><line x1="1" x2="25" y1="5" y2="5" stroke="var(--ink-2)" stroke-width="2" stroke-dasharray="2 3"/></svg>what actually happened</span>
+          <span><svg width="26" height="10"><rect x="1" y="1" width="24" height="8" rx="2" fill="var(--model)" opacity=".25"/><line x1="1" x2="25" y1="5" y2="5" stroke="var(--model)" stroke-width="2.4"/></svg>forecast and 80% range</span></div>
+        <div class="section-t" style="margin-top:18px">Chance of low DO at each past issue time, and what followed</div><div id="hist"></div>
+        <div class="key"><span><svg width="26" height="10"><line x1="1" x2="25" y1="5" y2="5" stroke="var(--ink)" stroke-dasharray="4 4"/></svg>alert cutoff</span>
+          <span><svg width="14" height="10"><rect x="1" y="1" width="12" height="8" rx="2" fill="var(--risk)"/></svg>DO fell below 5 mg/L in the following 24 h</span>
+          <span><svg width="14" height="10"><rect x="1" y="1" width="12" height="8" rx="2" fill="var(--line-2)"/></svg>stayed above</span></div></div>
+      <div class="stack">
+        <div><div class="section-t">Chance of DO below 5 mg/L in 24 h</div>
+          <div class="big" style="color:var(--${k==="check"||k==="nodata"?"ink-2":k})">${pct(r.p)}</div>
+          <div class="gauge"><i style="width:${Math.min(100,(r.p||0)*100)}%;background:var(--${k==="ok"?"ok":(k==="risk"?"risk":"ref")})"></i><u style="left:${cutoff()*100}%"></u></div>
+          <div class="gauge-l"><span>0%</span><span>alert cutoff ${pct(cutoff())}</span><span>100%</span></div></div>
+        <div class="outcome" style="background:none"><div class="section-t">Recommended action</div><b>${ACTION[k]}</b></div>
+        <dl class="kv">
+          <dt>DO at issue time</dt><dd>${f1(r.do)} mg/L</dd>
+          ${r.f && r.f.length ? `<dt>Median at +6 h</dt><dd>${f1(r.f[2][1])} mg/L</dd><dt>Median at +24 h</dt><dd>${f1(r.f[4][1])} mg/L</dd>
+          <dt>80% range at +24 h</dt><dd>${f1(r.f[4][0])} to ${f1(r.f[4][2])}</dd>` : ""}
+          <dt>Readings in last 24 h</dt><dd>${pct(r.obs)}</dd>
+        </dl>
+        <div><div class="section-t">Sensor checks</div><ul class="checks">${flags.map(f=>
+          `<li class="${f.on?"bad":""}">${f.on ? icon("check",14) : icon("ok",14)}<span>${f.t}</span></li>`).join("")}</ul></div>
+        ${outHtml}
+      </div>
+    </div>`;
+  drawFan(s,i); drawHist(s,i);
+}
+function svgBox(el, h){ const w = Math.max(320, el.clientWidth||640); return {w, h}; }
+function drawFan(s, i){
+  const el = $("fan"), {w,h} = svgBox(el, 330), m = {l:40,r:14,t:12,b:28};
+  const t0 = T[i].getTime(), r = s.replay[i];
+  const x0 = t0 - 60*HOUR, x1 = t0 + 26*HOUR;
+  const pts = []; for(let ms = Math.ceil(x0/HOUR)*HOUR; ms<=x1; ms+=HOUR){ pts.push({ms, v:obs(s,ms)}); }
+  const hist = pts.filter(p=>p.ms<=t0 && p.v!=null), fut = pts.filter(p=>p.ms>=t0 && p.v!=null);
+  const vals = pts.map(p=>p.v).filter(v=>v!=null);
+  if(r.f) r.f.forEach(a=>vals.push(a[0],a[2]));
+  vals.push(5);
+  let lo = Math.max(0, Math.floor(Math.min(...vals)-0.4)), hi = Math.ceil(Math.max(...vals)+0.4);
+  const x = d3.scaleUtc().domain([x0,x1]).range([m.l,w-m.r]), y = d3.scaleLinear().domain([lo,hi]).range([h-m.b,m.t]);
+  const svg = d3.create("svg").attr("viewBox",`0 0 ${w} ${h}`).attr("width","100%").attr("role","img")
+    .attr("aria-label",`Forecast for ${s.name}`);
+  svg.append("g").attr("class","grid").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(w-m.l-m.r)).tickFormat(""));
+  svg.append("g").attr("class","ax").attr("transform",`translate(0,${h-m.b})`).call(d3.axisBottom(x).ticks(w<520?3:7).tickFormat(w<520?d3.utcFormat("%d %b"):d3.utcFormat("%d %b %H:%M")));
+  svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5));
+  svg.append("text").attr("class","lbl").attr("x",m.l).attr("y",m.t-2).attr("dy","-.1em").text("mg/L");
+  // threshold
+  svg.append("line").attr("x1",m.l).attr("x2",w-m.r).attr("y1",y(5)).attr("y2",y(5)).attr("stroke","var(--risk)").attr("stroke-dasharray","5 4").attr("stroke-width",1.2);
+  svg.append("text").attr("class","lbl").attr("x",m.l+6).attr("y",y(5)-5).style("fill","var(--risk)").text("5 mg/L low-DO threshold");
+  // issue time rule
+  svg.append("line").attr("x1",x(t0)).attr("x2",x(t0)).attr("y1",m.t).attr("y2",h-m.b).attr("stroke","var(--line-2)").attr("stroke-width",1.5);
+  svg.append("text").attr("class","lbl").attr("x",x(t0)-6).attr("y",m.t+10).attr("text-anchor","end").text("issued");
+  const line = d3.line().x(p=>x(p.ms)).y(p=>y(p.v)).defined(p=>p.v!=null);
+  svg.append("path").datum(pts.filter(p=>p.ms<=t0)).attr("d",line).attr("fill","none").attr("stroke","var(--ink)").attr("stroke-width",1.8);
+  svg.append("path").datum(pts.filter(p=>p.ms>=t0)).attr("d",line).attr("fill","none").attr("stroke","var(--ink-2)").attr("stroke-width",1.6).attr("stroke-dasharray","2 3");
+  if(r.f && r.f.length){
+    const fp = [{ms:t0, lo:r.do, md:r.do, hi:r.do}].concat(r.f.map((a,j)=>({ms:t0+HR[j]*HOUR, lo:a[0], md:a[1], hi:a[2]})));
+    svg.append("path").datum(fp).attr("fill","var(--model)").attr("opacity",.2)
+      .attr("d",d3.area().x(p=>x(p.ms)).y0(p=>y(p.lo)).y1(p=>y(p.hi)).curve(d3.curveMonotoneX));
+    svg.append("path").datum(fp).attr("fill","none").attr("stroke","var(--model)").attr("stroke-width",2.4)
+      .attr("d",d3.line().x(p=>x(p.ms)).y(p=>y(p.md)).curve(d3.curveMonotoneX));
+    svg.selectAll("circle.fp").data(fp.slice(1)).join("circle").attr("cx",p=>x(p.ms)).attr("cy",p=>y(p.md)).attr("r",4)
+      .attr("fill","var(--model)").attr("stroke","var(--surface)").attr("stroke-width",1.5);
+  } else {
+    svg.append("text").attr("class","lbl").attr("x",x(t0)+10).attr("y",(m.t+h-m.b)/2).text("No forecast: latest reading missing");
+  }
+  // hover
+  const rule = svg.append("line").attr("y1",m.t).attr("y2",h-m.b).attr("stroke","var(--ink-3)").attr("stroke-width",1).style("display","none");
+  const tip = d3.select(el).append("div").attr("class","tip").style("display","none");
+  svg.append("rect").attr("x",m.l).attr("y",m.t).attr("width",w-m.l-m.r).attr("height",h-m.t-m.b).attr("fill","transparent")
+    .on("mousemove",ev=>{
+      const px = d3.pointer(ev)[0], ms = Math.round(x.invert(px).getTime()/HOUR)*HOUR, v = obs(s,ms);
+      rule.attr("x1",x(ms)).attr("x2",x(ms)).style("display",null);
+      tip.style("display",null).style("left",Math.min(px+12,w-190)+"px").style("top","8px")
+         .html(`<b>${fmtHM(new Date(ms))} UTC</b><br>${ms<=t0?"observed":"actually happened"}: ${v==null?"missing":v.toFixed(1)+" mg/L"}`);
+    }).on("mouseleave",()=>{ rule.style("display","none"); tip.style("display","none"); });
+  el.replaceChildren(svg.node(), tip.node());
+}
+function drawHist(s, i){
+  const el = $("hist"), {w,h} = svgBox(el, 170), m = {l:40,r:14,t:8,b:44};
+  const x = d3.scaleUtc().domain([T[0],T[N-1]]).range([m.l,w-m.r]), y = d3.scaleLinear().domain([0,1]).range([h-m.b-16,m.t]);
+  const svg = d3.create("svg").attr("viewBox",`0 0 ${w} ${h}`).attr("width","100%").attr("role","img").attr("aria-label","Risk history");
+  svg.append("g").attr("class","grid").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(3).tickSize(-(w-m.l-m.r)).tickFormat(""));
+  svg.append("g").attr("class","ax").attr("transform",`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(3).tickFormat(d=>Math.round(d*100)+"%"));
+  svg.append("g").attr("class","ax").attr("transform",`translate(0,${h-m.b+16})`).call(d3.axisBottom(x).ticks(w<520?4:7).tickFormat(d3.utcFormat("%d %b")));
+  svg.append("line").attr("x1",m.l).attr("x2",w-m.r).attr("y1",y(cutoff())).attr("y2",y(cutoff())).attr("stroke","var(--ink)").attr("stroke-dasharray","4 4").attr("opacity",.6);
+  const data = s.replay.map((r,j)=>({t:T[j], p:r.p}));
+  svg.append("path").datum(data).attr("fill","var(--model)").attr("opacity",.18)
+    .attr("d",d3.area().x(d=>x(d.t)).y0(y(0)).y1(d=>y(d.p||0)).defined(d=>d.p!=null).curve(d3.curveStepAfter));
+  svg.append("path").datum(data).attr("fill","none").attr("stroke","var(--model)").attr("stroke-width",1.8)
+    .attr("d",d3.line().x(d=>x(d.t)).y(d=>y(d.p)).defined(d=>d.p!=null).curve(d3.curveStepAfter));
+  // outcome strip: red = oxygen fell below 5 mg/L in the following 24 h
+  const sw = Math.max(1.5, (w-m.l-m.r)/N), sy = h-m.b-8;
+  for(let j=0;j<N;j++){
+    const o = outcome(s,j);
+    svg.append("rect").attr("x",x(T[j])).attr("y",sy).attr("width",sw).attr("height",9)
+      .attr("fill", o==null ? "var(--surface-2)" : (o.event ? "var(--risk)" : "var(--line-2)"));
+  }
+  svg.append("line").attr("x1",x(T[i])).attr("x2",x(T[i])).attr("y1",m.t).attr("y2",sy+9).attr("stroke","var(--ink)").attr("stroke-width",1.5);
+  el.replaceChildren(svg.node());
+}
+
+/* ---------- evidence ---------- */
+function card(title, cap, svgHtml, rows, head, legend){
+  return `<article class="card ev-card"><h3>${title}</h3><p class="cap">${cap}</p>${legend||""}${svgHtml}
+    <details><summary>View as table</summary><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></details></article>`;
+}
+const EW = 520, EH = 270, EM = {l:44,r:14,t:16,b:30};
+function frame(xd, yd, opts){
+  const x = opts.band ? d3.scaleBand().domain(xd).range([EM.l,EW-EM.r]).padding(.3) : d3.scaleLinear().domain(xd).range([EM.l,EW-EM.r]);
+  const y = d3.scaleLinear().domain(yd).range([EH-EM.b,EM.t]);
+  const svg = d3.create("svg").attr("viewBox",`0 0 ${EW} ${EH}`).attr("role","img").attr("aria-label",opts.label||"chart");
+  svg.append("g").attr("class","grid").attr("transform",`translate(${EM.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(EW-EM.l-EM.r)).tickFormat(""));
+  svg.append("g").attr("class","ax").attr("transform",`translate(0,${EH-EM.b})`).call(d3.axisBottom(x).ticks(5).tickFormat(opts.xfmt||(d=>d)));
+  svg.append("g").attr("class","ax").attr("transform",`translate(${EM.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(opts.yfmt||(d=>d)));
+  return {svg,x,y};
+}
+const swatch = (c,t)=>`<span><i style="background:${c}"></i>${t}</span>`;
+function buildEvidence(){
+  const E = D.evidence, out = [];
+  // 1 error by horizon
+  { const hs = E.skill.map(s=>"+"+s.h+" h"), ser = [["baseline","Best simple method","var(--ref)"],["boost","Gradient boosting","var(--model)"],["blend","Boosting + pretrained model","var(--blend)"]];
+    const vals = E.skill.map(s=>({baseline:s.mae_baseline, boost:Math.min(s.mae_gbm,s.mae_gbm_wx), blend:s.mae_blend}));
+    const {svg,x,y} = frame(hs,[0,Math.ceil(d3.max(vals,v=>v.baseline)*10)/10+0.14],{band:true,yfmt:d=>d.toFixed(1),label:"Average error by horizon"});
+    const x1 = d3.scaleBand().domain(ser.map(s=>s[0])).range([0,x.bandwidth()]).padding(.08);
+    vals.forEach((v,j)=>ser.forEach(([k,,c])=>{
+      const bx = x(hs[j])+x1(k), by = y(v[k]);
+      svg.append("rect").attr("x",bx).attr("y",by).attr("width",x1.bandwidth()).attr("height",y(0)-by).attr("fill",c).attr("rx",2)
+        .append("title").text(`${hs[j]} · ${k}: ${v[k].toFixed(3)} mg/L`);
+      svg.append("text").attr("class","val").attr("transform",`translate(${bx+x1.bandwidth()/2+3.5},${by-5}) rotate(-90)`)
+        .attr("text-anchor","start").text(v[k].toFixed(2));
+    }));
+    svg.append("text").attr("class","lbl").attr("x",EM.l).attr("y",11).text("mg/L, lower is better");
+    out.push(card("Forecast error by horizon","Average absolute error over a year of testing at 14 sites. The pretrained model's extra gain is under the sensor's own 0.1 mg/L resolution.",
+      svg.node().outerHTML, E.skill.map((s,j)=>[hs[j],vals[j].baseline.toFixed(3),vals[j].boost.toFixed(3),vals[j].blend.toFixed(3)]),
+      ["Horizon","Best simple","Boosting","Blend"], `<div class="legend-i">${ser.map(s=>swatch(s[2],s[1])).join("")}</div>`)); }
+  // 2 skill with CI
+  { const hs = E.skill.map(s=>"+"+s.h+" h");
+    const {svg,x,y} = frame(hs,[0,0.4],{band:true,yfmt:d=>Math.round(d*100)+"%",label:"Improvement over best simple method"});
+    [["skill_gbm","skill_gbm_lo","skill_gbm_hi","var(--model)",-6],["skill_blend","skill_blend_lo","skill_blend_hi","var(--blend)",6]].forEach(([a,l,h,c,off])=>{
+      E.skill.forEach((s,j)=>{ const cx = x(hs[j])+x.bandwidth()/2+off;
+        svg.append("line").attr("x1",cx).attr("x2",cx).attr("y1",y(s[l])).attr("y2",y(s[h])).attr("stroke",c).attr("stroke-width",2.2);
+        svg.append("circle").attr("cx",cx).attr("cy",y(s[a])).attr("r",5).attr("fill",c).attr("stroke","var(--surface)").attr("stroke-width",1.5)
+          .append("title").text(`${hs[j]}: ${(s[a]*100).toFixed(1)}% (95% CI ${(s[l]*100).toFixed(1)} to ${(s[h]*100).toFixed(1)})`);
+      }); });
+    svg.append("text").attr("class","lbl").attr("x",EM.l).attr("y",11).text("less error than the best simple method · 95% interval");
+    out.push(card("How much better, with uncertainty","Percentage reduction in error. Vertical lines are 95% confidence intervals from a bootstrap that resamples whole site-weeks.",
+      svg.node().outerHTML, E.skill.map((s,j)=>[hs[j],(s.skill_gbm*100).toFixed(1)+"%",`${(s.skill_gbm_lo*100).toFixed(1)} to ${(s.skill_gbm_hi*100).toFixed(1)}`,(s.skill_blend*100).toFixed(1)+"%"]),
+      ["Horizon","Boosting","95% interval","Blend"], `<div class="legend-i">${swatch("var(--model)","Gradient boosting")}${swatch("var(--blend)","Boosting + pretrained model")}</div>`)); }
+  // 3 coverage
+  { const hs = E.coverage.map(c=>"+"+c.h+" h");
+    const {svg,x,y} = frame(hs,[0.5,0.9],{band:true,yfmt:d=>Math.round(d*100)+"%",label:"Interval coverage"});
+    const x1 = d3.scaleBand().domain(["raw","conformal"]).range([0,x.bandwidth()]).padding(.1);
+    E.coverage.forEach((c,j)=>[["raw","var(--ref)"],["conformal","var(--model)"]].forEach(([k,col])=>{
+      const bx = x(hs[j])+x1(k), by = y(c[k]);
+      svg.append("rect").attr("x",bx).attr("y",by).attr("width",x1.bandwidth()).attr("height",y(0.5)-by).attr("fill",col).attr("rx",2)
+        .append("title").text(`${hs[j]} · ${k}: ${(c[k]*100).toFixed(0)}%`);
+      svg.append("text").attr("class","lbl").attr("x",bx+x1.bandwidth()/2).attr("y",by-4).attr("text-anchor","middle").attr("class","val").text(Math.round(c[k]*100)+"%");
+    }));
+    svg.append("line").attr("x1",EM.l).attr("x2",EW-EM.r).attr("y1",y(.8)).attr("y2",y(.8)).attr("stroke","var(--ink)").attr("stroke-dasharray","5 4");
+    out.push(card("Are the uncertainty ranges honest?","Share of actual outcomes inside the claimed 80% range, before and after calibrating on a full year of data. The dashed line is the 80% target.",
+      svg.node().outerHTML, E.coverage.map((c,j)=>[hs[j],(c.raw*100).toFixed(0)+"%",(c.conformal*100).toFixed(0)+"%"]), ["Horizon","Raw","Calibrated"],
+      `<div class="legend-i">${swatch("var(--ref)","Raw")}${swatch("var(--model)","After calibration")}</div>`)); }
+  // 4 alerts
+  { const {svg,x,y} = frame([0.25,2],[0,1],{yfmt:d=>Math.round(d*100)+"%",xfmt:d=>d,label:"Alerts at a fixed budget"});
+    const xs = d3.scaleLog().domain([0.25,2]).range([EM.l,EW-EM.r]);
+    svg.select("g.ax").remove();
+    svg.append("g").attr("class","ax").attr("transform",`translate(0,${EH-EM.b})`).call(d3.axisBottom(xs).tickValues(E.alerts.map(a=>a.budget)).tickFormat(d=>d));
+    [["model","var(--model)"],["naive","var(--ref)"]].forEach(([k,c])=>{
+      svg.append("path").datum(E.alerts).attr("fill","none").attr("stroke",c).attr("stroke-width",2.4).attr("d",d3.line().x(a=>xs(a.budget)).y(a=>y(a[k])));
+      svg.selectAll("circle."+k).data(E.alerts).join("circle").attr("cx",a=>xs(a.budget)).attr("cy",a=>y(a[k])).attr("r",4.5).attr("fill",c)
+        .attr("stroke","var(--surface)").attr("stroke-width",1.5).append("title").text(a=>`${a.budget} alerts/site/week · ${k}: ${(a[k]*100).toFixed(0)}%`);
+    });
+    const a5 = E.alerts.find(a=>a.budget===0.5);
+    if(a5){ svg.append("text").attr("class","val").style("fill","var(--model)").attr("x",xs(.5)-9).attr("y",y(a5.model)-7).attr("text-anchor","end").text("forecast "+Math.round(a5.model*100)+"%");
+            svg.append("text").attr("class","val").attr("x",xs(.5)+9).attr("y",y(a5.naive)+16).text("simple rule "+Math.round(a5.naive*100)+"%"); }
+    out.push(card("Alerts: forecast vs a one-line rule","Share of low-oxygen events warned of in advance (vertical), against alerts allowed per site per week (horizontal). The simple rule is “alert when DO is below 5.5 mg/L”. The forecast helps only when alerts must be rare.",
+      svg.node().outerHTML, E.alerts.map(a=>[a.budget,(a.model*100).toFixed(0)+"%",(a.naive*100).toFixed(0)+"%"]), ["Alerts / site / week","Forecast","Simple rule"],
+      `<div class="legend-i">${swatch("var(--model)","Forecast-based alert")}${swatch("var(--ref)","Simple rule")}</div>`)); }
+  // 5 faults
+  { const names = {spike:"Spikes",stuck_low:"Stuck near zero",offset:"Calibration offset",flatline:"Flatline (stuck)",drift:"Slow drift"};
+    const ks = ["spike","stuck_low","offset","flatline","drift"];
+    const hb = 270, ym = d3.scaleBand().domain(ks).range([12,hb-26]).padding(.35), xm = d3.scaleLinear().domain([0,1]).range([150,EW-46]);
+    const svg = d3.create("svg").attr("viewBox",`0 0 ${EW} ${hb}`).attr("role","img").attr("aria-label","Fault detection by type");
+    svg.append("g").attr("class","grid").attr("transform",`translate(0,${hb-26})`).call(d3.axisBottom(xm).ticks(5).tickSize(-(hb-38)).tickFormat(""));
+    svg.append("g").attr("class","ax").attr("transform",`translate(0,${hb-26})`).call(d3.axisBottom(xm).ticks(5).tickFormat(d=>Math.round(d*100)+"%"));
+    ks.forEach(k=>{ const v = E.faults[k], yy = ym(k);
+      svg.append("text").attr("class","lbl").attr("x",142).attr("y",yy+ym.bandwidth()/2+4).attr("text-anchor","end").text(names[k]);
+      svg.append("rect").attr("x",xm(0)).attr("y",yy).attr("width",xm(v)-xm(0)).attr("height",ym.bandwidth()).attr("rx",3)
+        .attr("fill", k==="drift" ? "var(--ref)" : "var(--model)").append("title").text(`${names[k]}: ${(v*100).toFixed(0)}% flagged while active`);
+      svg.append("text").attr("class","lbl").attr("x",xm(v)+6).attr("y",yy+ym.bandwidth()/2+4).text(Math.round(v*100)+"%"); });
+    out.push(card("Sensor-fault detection","Share of injected faults flagged while they were active, at a fixed false-alarm rate. Drift is at chance level and is not a supported capability.",
+      svg.node().outerHTML, ks.map(k=>[names[k],(E.faults[k]*100).toFixed(0)+"%"]), ["Fault type","Flagged"], "")); }
+  // 6 drift is chance
+  { const dr = E.drift;
+    const {svg,x,y} = frame([d3.min(dr,d=>d.days),d3.max(dr,d=>d.days)],[0,0.8],{yfmt:d=>Math.round(d*100)+"%",xfmt:d=>d+" d",label:"Drift detection vs chance"});
+    [["real","var(--model)"],["null","var(--ref)"]].forEach(([k,c])=>{
+      svg.append("path").datum(dr).attr("fill","none").attr("stroke",c).attr("stroke-width",2.4).attr("stroke-dasharray",k==="null"?"6 4":null)
+        .attr("d",d3.line().x(d=>x(d.days)).y(d=>y(d[k])));
+      svg.selectAll("circle."+k).data(dr).join("circle").attr("cx",d=>x(d.days)).attr("cy",d=>y(d[k])).attr("r",4.5).attr("fill",c)
+        .attr("stroke","var(--surface)").attr("stroke-width",1.5).append("title").text(d=>`${d.days} days · ${k==="real"?"with drift":"no drift"}: ${(d[k]*100).toFixed(0)}%`);
+    });
+    svg.append("text").attr("class","val").attr("x",EM.l+10).attr("y",y(0.72)).text("The two lines coincide:");
+    svg.append("text").attr("class","val").attr("x",EM.l+10).attr("y",y(0.72)+15).text("detection did not depend on drift.");
+    out.push(card("An apparent detection that was luck","The detector “caught” drifts as often when no drift existed. Longer windows simply contain more random flags.",
+      svg.node().outerHTML, dr.map(d=>[d.days+" days",(d.real*100).toFixed(0)+"%",(d.null*100).toFixed(0)+"%"]), ["Duration","With drift","No drift"],
+      `<div class="legend-i">${swatch("var(--model)","With real drift")}${swatch("var(--ref)","No drift (chance)")}</div>`)); }
+  $("ev-grid").innerHTML = out.join("");
+  const w = E.weather24, s6 = E.skill.find(s=>s.h===6), s24 = E.skill.find(s=>s.h===24);
+  $("notworked").innerHTML = `<h3>What did not work</h3><ul>
+    <li><b>Forecast-based alerts barely beat a one-line rule.</b> At 0.5 alerts per site per week the forecast warns of ${Math.round(E.alerts.find(a=>a.budget===0.5).model*100)}% of events against ${Math.round(E.alerts.find(a=>a.budget===0.5).naive*100)}% for “alert when DO is below 5.5”; with more alerts allowed the simple rule is as good or better, and the difference across 14 sites is not statistically established.</li>
+    <li><b>Slow sensor drift cannot be detected from one sensor.</b> The first result showed ${Math.round(E.drift[E.drift.length-1].real*100)}% detection; the no-drift control gave ${Math.round(E.drift[E.drift.length-1].null*100)}% on the same windows.</li>
+    <li><b>The pretrained model added almost nothing.</b> Blending it in cut the 6 h error from ${s6.mae_gbm.toFixed(2)} to ${s6.mae_blend.toFixed(2)} mg/L, below the 0.1 mg/L reading resolution, so it is an experiment and not part of the product.</li>
+    <li><b>Weather helps the 24 h forecast, but through sunlight and temperature more than rain</b> (${Math.round(w.atmos*1000)/10}% from temperature and sunlight, ${Math.round(w.rain*1000)/10}% from rain), and it does not improve low-oxygen alerts.</li></ul>`;
+}
+
+/* ---------- wiring ---------- */
+function setT(i){ st.t = Math.max(0,Math.min(N-1,i)); renderControls(); renderKPIs(); renderMap(); renderQueue(); renderDetail(); }
+function stop(){ st.playing = false; clearInterval(st.timer); renderControls(); }
+function init(){
+  $("f-train").textContent = d3.utcFormat("%d %b %Y")(new Date(SITES[0].trained_through));
+  $("slider").max = N-1;
+  $("replay-note").textContent = `Real forecasts replayed for ${fmtDay(T[0])} to ${fmtDay(T[N-1])}, every 6 hours. The dotted line shows what actually happened.`;
+  buildMap();
+  // default: the latest time that has a mix of statuses including a sensor check
+  let best = N-1, bestScore = -1;
+  for(let i=N-1;i>=Math.max(0,N-60);i--){
+    const c = {risk:0,check:0,nodata:0,ok:0}; SITES.forEach(s=>c[status(s,i)]++);
+    const score = Math.min(c.risk,14-c.risk) + (c.check>0?3:0) + (c.nodata>0?1:0);
+    if(score>bestScore){ bestScore = score; best = i; }
+  }
+  st.t = best;
+  const top = SITES.map(s=>({s,k:status(s,best),p:s.replay[best].p||0})).sort((a,b)=>ORDER[a.k]-ORDER[b.k]||b.p-a.p)[0];
+  st.site = top.s.id;
+  $("slider").oninput = e=>{ stop(); setT(+e.target.value); };
+  $("prev").onclick = ()=>{ stop(); setT(st.t-1); };
+  $("next").onclick = ()=>{ stop(); setT(st.t+1); };
+  $("play").onclick = ()=>{
+    if(st.playing){ stop(); return; }
+    st.playing = true; renderControls();
+    st.timer = setInterval(()=>{ if(st.t>=N-1){ stop(); return; } setT(st.t+1); }, 650);
+  };
+  document.querySelectorAll("#ratio button").forEach(b=>b.onclick=()=>{ st.ratio = +b.dataset.r; renderControls(); renderKPIs(); renderMap(); renderQueue(); renderDetail(); });
+  $("theme").onclick = ()=>{
+    const root = document.documentElement, dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const cur = root.dataset.theme || (dark ? "dark" : "light");
+    root.dataset.theme = cur==="dark" ? "light" : "dark";
+    renderDetail(); buildEvidence();
+  };
+  const show = tab=>{ st.tab = tab; $("view-network").hidden = tab!=="network"; $("view-evidence").hidden = tab!=="evidence";
+    $("tab-network").setAttribute("aria-selected", String(tab==="network")); $("tab-evidence").setAttribute("aria-selected", String(tab==="evidence"));
+    if(tab==="network") renderDetail(); };
+  $("tab-network").onclick = ()=>{ show("network"); try{ history.replaceState(null,"","#network"); }catch(e){} };
+  $("tab-evidence").onclick = ()=>{ show("evidence"); try{ history.replaceState(null,"","#evidence"); }catch(e){} };
+  if(location.hash==="#evidence") show("evidence");
+  addEventListener("resize", ()=>{ if(st.tab==="network") renderDetail(); });
+  renderControls(); renderKPIs(); renderMap(); renderQueue(); renderDetail(); buildEvidence();
+}
+init();
+})();
+</script>
