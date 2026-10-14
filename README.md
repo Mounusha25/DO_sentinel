@@ -215,16 +215,31 @@ curl localhost:8000/forecast/USGS-03293500        # live pull of the last 40 day
 
 Serving reuses the evaluated feature, model, calibration and detector code. A `Dockerfile` is provided (not built or tested in this environment). Bundles record their training and calibration dates; retrain on a schedule. Every response carries the evaluation caveats: alerting is competitive with, not better than, a simple threshold rule, and slow drift is not reliably detected.
 
-## Dashboard and monitoring
+## Dashboard
+
+**`reports/dashboard.html`** is a standalone, interactive dashboard (open the file in a browser; no server). It replays *real* model output for the last 30 days of data across all 14 sites:
+
+* a network view: US map with each site's status (elevated risk, check sensor, no recent data, normal), a ranked triage queue, and counts you can click to filter;
+* a time control (step, slider or play) and a cost-ratio setting that moves the alert cutoff;
+* a site view: forecast with its 80% interval against what actually happened, the probability of low DO with the alert cutoff, sensor checks, and a 30-day history of past risk and what followed;
+* an Evidence tab with the evaluation results and what did not work, every figure read from the saved result files.
 
 ```bash
-streamlit run app/dashboard.py     # replay a forecast at any past time and compare with what happened
+python scripts/build_dashboard_data.py   # forecasts from models/*.joblib and tables from results/ -> reports/dashboard/data.json
+python scripts/build_dashboard.py        # template + data + map -> reports/dashboard.html
+```
+
+The page needs an internet connection only to load its charting library and font. The replay is not live data: models were trained on data before 2025-10-12, and their interval and probability calibration used the following year, which includes the replay window. `app/dashboard.py` is an earlier, simpler Streamlit replay tool.
+
+## Monitoring
+
+```bash
 DOSENTINEL_LOG=logs/forecasts.jsonl uvicorn dosentinel.api:app   # log every live forecast
 curl localhost:8000/monitor/USGS-03293500                        # score matured forecasts, retrain rule
 ```
 
-* **Dashboard** (`app/dashboard.py`): pick a site and a time, see the forecast with its 80% interval, the probability of low DO, the action and sensor flags, then what actually happened; times inside the training period are labelled. A Results tab shows the evaluation, including what did not work.
-* **Monitoring** (`src/dosentinel/monitoring.py`): each live response reports data age and input completeness; every served forecast can be logged and later scored against observed values (this is the forward holdout in PROBLEM.md). A retrain rule fires on live MAE more than 1.25x its evaluation level (with at least 200 matured forecasts), interval coverage below 0.65, more than 30% of DO missing over a week, or a model older than a year.
+* Each live response reports data age and input completeness; every served forecast can be logged and later scored against observed values (this is the forward holdout in PROBLEM.md).
+* The retrain rule fires on live MAE more than 1.25x its evaluation level (with at least 200 matured forecasts), interval coverage below 0.65, more than 30% of DO missing over a week, or a model older than a year.
 * An out-of-sample check of 120 forecasts at one site showed well-calibrated probability bins (forecast 90-100% followed by an event 7 of 7 times; 0-10% by an event 1% of the time).
 
 ## Reproducibility
