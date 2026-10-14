@@ -15,4 +15,4 @@ data/chronos2_cache/
 logs/
 results_prev/
 results/*.parquet
-reports/dashboard/artifact.html
+dashboard/_artifact.html

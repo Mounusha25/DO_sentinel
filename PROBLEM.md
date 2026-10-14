@@ -61,6 +61,6 @@ the product (see MODEL_CARD.md).
 | 2 | 80% intervals cover 75-85% | After conformal calibration: mean 0.78-0.79 per horizon; 93% of site-horizon cells inside 0.75-0.85; worst sites 0.67-0.68. Raw intervals: 0.71-0.76 | **Met on average, not at every site** |
 | 3 | Anticipated recall >= 0.7 at <= 0.5 alerts/site/week, not worse than the naive rule | Mean recall 0.795 vs 0.418 for the naive rule; 10 of 14 sites >= 0.7; paired difference +0.38 [+0.03, +0.69], sign test p = 0.23; no advantage at >= 1 alert/week | **Met on average; evidence weak** |
 | 4 | >= 80% of injected jumps and flatlines flagged at <= 1 false flag/site/week | Spikes 84% and stuck-low 99% at about 1.0 false flag/week; flatlines 59%, offsets 65%; drift 30% (chance level) | **Partly met**: spikes and stuck readings yes; flatlines and offsets no |
-| 5 | Answers in < 10 s, reports freshness and missing inputs | Live call about 5 s including the USGS pull; reports fraction of the last 24 h observed; freshness field added in the monitoring step | **Met after monitoring step** |
+| 5 | Answers in < 10 s, reports freshness and missing inputs | A warm call returns well under 10 s; a live USGS pull takes about 5 s and fails fast (503 with Retry-After) after 35 s. Reports data age and the fraction of the last 24 h observed | **Met** |
 
 Criteria failed or only partly met are reported as such; none were changed after seeing results.

@@ -1,9 +1,11 @@
 [project]
 name = "do-sentinel"
 version = "0.1.0"
-description = "Dissolved-oxygen forecasting, sensor-fault detection, and alert decisions on USGS continuous data"
+description = "Dissolved-oxygen forecasting, sensor-fault detection and alert triage on USGS continuous water-quality data"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "numpy>=1.26",
   "pandas>=2.1",
   "pyarrow>=14",
   "requests>=2.31",
@@ -11,9 +13,17 @@ dependencies = [
   "scikit-learn>=1.4",
 ]
 
+[project.urls]
+Repository = "https://github.com/Mounusha25/DO_sentinel"
+Dashboard = "https://mounusha25.github.io/DO_sentinel/"
+
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5", "httpx>=0.27"]
 serve = ["fastapi>=0.110", "uvicorn>=0.29", "joblib>=1.3"]
+# plots, the statistical baseline and the report generators
+experiments = ["statsmodels>=0.14", "matplotlib>=3.8", "joblib>=1.3"]
+# pretrained time-series models (Chronos-Bolt, Chronos-2); run in a separate environment
+foundation = ["torch>=2.2", "transformers>=4.40", "accelerate>=0.30", "chronos-forecasting>=2.0", "joblib>=1.3"]
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -24,3 +34,19 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+extend-exclude = [".venv-ai", "docs", "models"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+  "E501",  # long lines are not enforced
+  "B008",  # frozen dataclass instances as argument defaults are intentional
+  "B905",  # zip() over equal-length sequences throughout
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E402"]  # scripts put src/ on sys.path before importing the package
