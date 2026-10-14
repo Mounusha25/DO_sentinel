@@ -151,7 +151,7 @@ def forecast_live(site_id: str, cost_ratio: float = Query(10.0, gt=0)) -> dict:
             if not df.empty:
                 raw[code] = df.drop_duplicates("time").set_index("time")["value"].sort_index()
         try:
-            frame = clean_frame_from_raw(raw)
+            frame = clean_frame_from_raw(raw, window_start=start)
         except ValueError as e:
             raise HTTPException(502, str(e))
         _cache[site_id] = (now, frame)

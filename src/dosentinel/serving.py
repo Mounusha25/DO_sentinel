@@ -48,9 +48,13 @@ class SiteBundle:
     metrics: dict = field(default_factory=dict)
 
 
-def clean_frame_from_raw(raw: dict[str, pd.Series]) -> pd.DataFrame:
+def clean_frame_from_raw(raw: dict[str, pd.Series], window_start: pd.Timestamp | None = None) -> pd.DataFrame:
     """Raw value series by parameter code -> flag-masked frame (do,temp,spcond,turb,q) on a
-    regular 15-minute grid. Applies the same rules the training data went through."""
+    regular 15-minute grid. Applies the same rules the training data went through.
+
+    `window_start`: if given, the frame is padded back to that time with missing values, so a
+    sensor that only resumed reporting recently is treated as sparse history rather than as a
+    short history. The end is deliberately not padded (USGS reporting lags the clock)."""
     if "00300" not in raw or raw["00300"].dropna().empty:
         raise ValueError("no dissolved-oxygen (00300) observations supplied")
     grid = to_grid(raw["00300"].dropna().sort_index())
@@ -63,7 +67,12 @@ def clean_frame_from_raw(raw: dict[str, pd.Series]) -> pd.DataFrame:
             continue
         fl = flag_series(s.dropna().sort_index(), RULES[code])
         cols[name] = clean_values(fl).reindex(idx)
-    return pd.DataFrame(cols, index=idx)
+    out = pd.DataFrame(cols, index=idx)
+    if window_start is not None:
+        start = pd.Timestamp(window_start).ceil("15min")
+        if start < out.index[0]:
+            out = out.reindex(pd.date_range(start, out.index[-1], freq="15min"))
+    return out
 
 
 def train_bundle(frame: pd.DataFrame, site_id: str, role: str = "", threshold: float = 5.0,

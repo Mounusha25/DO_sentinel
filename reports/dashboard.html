@@ -470,6 +470,7 @@ function renderDetail(){
       </div>
     </div>`;
   drawFan(s,i);
+  if(st.mode==="live"){ const k0 = document.querySelector("#detail .key span:nth-child(2)"); if(k0) k0.remove(); }
   if(st.mode==="live"){ const h = $("hist"); if(h){ h.previousElementSibling.remove(); h.nextElementSibling.remove(); h.remove(); } }
   else drawHist(s,i);
 }
@@ -495,7 +496,7 @@ function drawFan(s, i){
   svg.append("text").attr("class","lbl").attr("x",m.l).attr("y",m.t-2).attr("dy","-.1em").text("mg/L");
   // threshold
   svg.append("line").attr("x1",m.l).attr("x2",w-m.r).attr("y1",y(5)).attr("y2",y(5)).attr("stroke","var(--risk)").attr("stroke-dasharray","5 4").attr("stroke-width",1.2);
-  svg.append("text").attr("class","lbl").attr("x",m.l+6).attr("y",y(5)-5).style("fill","var(--risk)").text("5 mg/L low-DO threshold");
+  svg.append("text").attr("class","val").attr("x",m.l+6).attr("y",y(5)-5).style("fill","var(--risk)").text("5 mg/L low-DO threshold");
   // issue time rule
   svg.append("line").attr("x1",x(t0)).attr("x2",x(t0)).attr("y1",m.t).attr("y2",h-m.b).attr("stroke","var(--line-2)").attr("stroke-width",1.5);
   svg.append("text").attr("class","lbl").attr("x",x(t0)-6).attr("y",m.t+10).attr("text-anchor","end").text("issued");

@@ -141,3 +141,23 @@ def test_api_rejects_oversized_payload_and_sets_cors(bundle, tmp_path, monkeypat
     assert r.headers.get("access-control-allow-origin") == "https://mounusha25.github.io"
     r2 = c.options("/forecast/S-1", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"})
     assert "access-control-allow-origin" not in r2.headers
+
+
+def test_window_start_pads_a_recently_resumed_sensor_instead_of_rejecting_it(bundle):
+    f = _frame().iloc[-96 * 30:]
+    recent = {"00300": f["do"].iloc[-96 * 5:], "00010": f["temp"].iloc[-96 * 5:]}  # only 5 days reported
+    narrow = clean_frame_from_raw(recent)
+    with pytest.raises(ValueError):
+        forecast(bundle, narrow)  # 5 days of history is too short
+    padded = clean_frame_from_raw(recent, window_start=f.index[0])
+    assert padded.index[0] <= f.index[0] + pd.Timedelta("15min") and padded["do"].iloc[: 96 * 20].isna().all()
+    out = forecast(bundle, padded)
+    assert out["observed_fraction_last_24h"] > 0.9 and len(out["forecasts"]) == 5
+
+
+def test_window_start_does_not_pad_the_end():
+    idx = pd.date_range("2026-01-01", periods=96 * 3, freq="15min", tz="UTC")
+    s = pd.Series(7.0 + 0.1 * (np.arange(len(idx)) % 7), index=idx)  # varies, so no flatline mask
+    g = clean_frame_from_raw({"00300": s}, window_start=idx[0] - pd.Timedelta(days=10))
+    assert g.index[-1] == idx[-1] and g["do"].iloc[-1] == pytest.approx(s.iloc[-1])
+    assert g.index[0] == idx[0] - pd.Timedelta(days=10)
