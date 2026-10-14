@@ -24,3 +24,13 @@ page = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
         '<style>:root{color-scheme:light}body{margin:0}</style></head><body>\n' + frag + "\n</body></html>\n")
 Path("reports/dashboard.html").write_text(page)
 print(f"wrote reports/dashboard.html ({len(page) / 1e3:.0f} KB)")
+
+# GitHub Pages serves ./docs: the dashboard is the site root, the case study sits next to it
+docs = Path("docs")
+docs.mkdir(exist_ok=True)
+(docs / "index.html").write_text(page)
+(docs / ".nojekyll").write_text("")
+cs = Path("reports/case_study.html")
+if cs.exists():
+    (docs / "case-study.html").write_text(cs.read_text())
+print("wrote docs/index.html (GitHub Pages root)")
