@@ -327,9 +327,12 @@ function renderControls(){
   if(live){
     $("live-when").textContent = st.liveBusy ? `Loading ${n} of ${SITES.length}` :
       (st.liveAt ? "Updated " + new Date(st.liveAt).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "Not loaded");
+    const limited = SITES.some(s=>st.live[s.id] && st.live[s.id].error && /503/.test(st.live[s.id].error));
+    const stale = SITES.some(s=>st.live[s.id] && st.live[s.id].report && st.live[s.id].report.stale);
     $("live-note").textContent = bad===SITES.length && !st.liveBusy
-      ? "The live API could not be reached from this page. Live mode works from the GitHub Pages site or a local copy with internet access."
-      : `Current USGS readings, forecast by the deployed API.${bad ? " " + bad + " site(s) failed to load." : ""} The free server sleeps when idle, so the first load can take about a minute.`;
+      ? (limited ? "USGS is not answering the free server right now (likely a rate limit). Try again in a few minutes, or switch to Replay."
+                 : "The live API could not be reached from this page. Live mode works from the GitHub Pages site or a local copy with internet access.")
+      : `Current USGS readings, forecast by the deployed API.${stale ? " Some sites show the last good data because USGS did not answer." : ""}${bad ? " " + bad + " site(s) failed to load." : ""} The free server sleeps when idle, so the first load can take about a minute.`;
   }
   $("slider").value = st.t;
   $("when").textContent = fmtWhen(T[st.t]);

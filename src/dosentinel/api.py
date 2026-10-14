@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 
 import joblib
@@ -25,7 +26,8 @@ from .monitoring import (data_age_minutes, input_health, log_forecast, read_log,
 from .serving import SiteBundle, clean_frame_from_raw, forecast
 
 HISTORY_DAYS = 40
-CACHE_SECONDS = 300
+CACHE_SECONDS = 600
+FETCH_DEADLINE_S = 35  # hard limit for the whole USGS pull
 CAVEATS = [
     "Alerts built on this probability were competitive with, not better than, a simple 'DO < threshold + 0.5 mg/L' rule in evaluation.",
     "Slow sensor drift is not reliably detectable; flags cover jumps, spikes, flatlines and stuck-low readings.",
@@ -130,33 +132,63 @@ def sites() -> list[dict]:
     return out
 
 
+class UpstreamError(Exception):
+    """USGS could not provide the DO series in time (rate limit, outage or timeout)."""
+
+
+def _fetch_live_frame(site_id: str) -> pd.DataFrame:
+    """Pull the five series concurrently under a hard deadline; never block a request for minutes."""
+    end = pd.Timestamp.now(tz="UTC").floor("15min")
+    start = end - pd.Timedelta(days=HISTORY_DAYS)
+    fmt = "%Y-%m-%dT%H:%M:%SZ"
+    # short retries and a capped Retry-After: a web request must fail fast, not sleep for minutes
+    client = UsgsClient(max_retries=2, backoff=1.0, timeout=15.0, max_retry_after=2.0)
+
+    def one(code: str):
+        return client.fetch_continuous(site_id, code, start.strftime(fmt), end.strftime(fmt))
+
+    ex = ThreadPoolExecutor(max_workers=len(PARAM_COLS))
+    futs = {ex.submit(one, c): c for c in PARAM_COLS}
+    done, pending = wait(futs, timeout=FETCH_DEADLINE_S)
+    ex.shutdown(wait=False, cancel_futures=True)
+    raw, errors = {}, {}
+    for f in done:
+        code = futs[f]
+        try:
+            df = f.result()
+            if not df.empty:
+                raw[code] = df.drop_duplicates("time").set_index("time")["value"].sort_index()
+        except Exception as e:  # upstream failure for this series
+            errors[code] = str(e)
+    if "00300" not in raw:
+        timed_out = any(futs[p] == "00300" for p in pending)
+        raise UpstreamError(errors.get("00300") or ("timed out" if timed_out else "no dissolved-oxygen readings returned"))
+    try:
+        return clean_frame_from_raw(raw, window_start=start)
+    except ValueError as e:
+        raise UpstreamError(str(e))
+
+
 @app.get("/forecast/{site_id}")
-def forecast_live(site_id: str, cost_ratio: float = Query(10.0, gt=0)) -> dict:
+def forecast_live(site_id: str, cost_ratio: float = Query(10.0, gt=0, le=1000)) -> dict:
     bundle = get_bundle(site_id)
     now = time.time()
     hit = _cache.get(site_id)
+    stale, reason = False, None
     if hit is None or now - hit[0] > CACHE_SECONDS:
-        end = pd.Timestamp.now(tz="UTC").floor("15min")
-        start = end - pd.Timedelta(days=HISTORY_DAYS)
-        fmt = "%Y-%m-%dT%H:%M:%SZ"
-        client = UsgsClient()
-        raw = {}
-        for code in PARAM_COLS:
-            try:
-                df = client.fetch_continuous(site_id, code, start.strftime(fmt), end.strftime(fmt))
-            except Exception as e:  # network / upstream failure
-                if code == "00300":
-                    raise HTTPException(502, f"could not fetch DO data from USGS: {e}")
-                continue
-            if not df.empty:
-                raw[code] = df.drop_duplicates("time").set_index("time")["value"].sort_index()
         try:
-            frame = clean_frame_from_raw(raw, window_start=start)
-        except ValueError as e:
-            raise HTTPException(502, str(e))
-        _cache[site_id] = (now, frame)
-        hit = _cache[site_id]
-    return _respond(bundle, hit[1], cost_ratio, live=True)
+            _cache[site_id] = (now, _fetch_live_frame(site_id))
+            hit = _cache[site_id]
+        except UpstreamError as e:
+            if hit is None:
+                raise HTTPException(503, f"USGS data is unavailable right now ({e}). Try again in a few minutes.",
+                                    headers={"Retry-After": "120"})
+            stale, reason = True, str(e)  # serve the last good data, clearly marked
+    res = _respond(bundle, hit[1], cost_ratio, live=True)
+    res["stale"] = stale
+    if stale:
+        res["stale_reason"] = reason
+    return res
 
 
 @app.post("/forecast/{site_id}")

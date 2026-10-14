@@ -161,3 +161,42 @@ def test_window_start_does_not_pad_the_end():
     g = clean_frame_from_raw({"00300": s}, window_start=idx[0] - pd.Timedelta(days=10))
     assert g.index[-1] == idx[-1] and g["do"].iloc[-1] == pytest.approx(s.iloc[-1])
     assert g.index[0] == idx[0] - pd.Timedelta(days=10)
+
+
+def test_live_endpoint_fails_fast_then_serves_stale(bundle, tmp_path, monkeypatch):
+    joblib.dump(bundle, tmp_path / "S-1.joblib")
+    monkeypatch.setenv("DOSENTINEL_MODELS", str(tmp_path))
+    api._bundles.clear()
+    api._cache.clear()
+
+    def down(site_id):
+        raise api.UpstreamError("HTTP 429")
+
+    monkeypatch.setattr(api, "_fetch_live_frame", down)
+    c = TestClient(api.app)
+    r = c.get("/forecast/S-1")
+    assert r.status_code == 503 and "Retry-After" in r.headers and "unavailable" in r.json()["detail"]
+    # a previously fetched frame is served when USGS is down, and marked stale
+    import time as _t
+    api._cache["S-1"] = (_t.time() - api.CACHE_SECONDS - 5, _frame().iloc[-96 * 30:])
+    r2 = c.get("/forecast/S-1")
+    assert r2.status_code == 200 and r2.json()["stale"] is True and r2.json()["stale_reason"] == "HTTP 429"
+
+
+def test_fetch_deadline_does_not_block_on_a_hanging_series(monkeypatch):
+    import threading
+    gate = threading.Event()
+
+    class Hang:
+        def __init__(self, *a, **k): pass
+        def fetch_continuous(self, *a, **k):
+            gate.wait(5)  # simulates an upstream that never answers in time
+            return pd.DataFrame()
+
+    monkeypatch.setattr(api, "UsgsClient", Hang)
+    monkeypatch.setattr(api, "FETCH_DEADLINE_S", 0.3)
+    t0 = __import__("time").time()
+    with pytest.raises(api.UpstreamError):
+        api._fetch_live_frame("S-1")
+    assert __import__("time").time() - t0 < 2.0
+    gate.set()
