@@ -12,6 +12,7 @@ import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
 
 from .baselines import STEPS_PER_DAY, persistence_diel_delta
+from .blend import apply_margin, blend_quantiles, conformal_margin, prob_below
 from .calibration import PlattScaler, cqr_correction
 from .decision import Costs
 from .detect import (
@@ -24,9 +25,10 @@ from .detect import (
     threshold_at_rate,
 )
 from .evaluate import clean_values
-from .features import PARAM_COLS, base_features, horizon_features, train_origin_mask
+from .features import PARAM_COLS, base_features, horizon_features, saturation_features, train_origin_mask
 from .models import PARAMS
 from .validate import RULES, flag_series, to_grid
+from .weather import weather_features
 
 HORIZONS_H = [1, 3, 6, 12, 24]
 QUANTILES = (0.1, 0.5, 0.9)
@@ -34,6 +36,8 @@ FAULT_FPR = 0.001
 MIN_CAL_CLASS = 15
 STEP = pd.Timedelta("15min")
 MIN_HISTORY_DAYS = 16  # robust-scale window (14 d) plus a margin
+# Day-ahead forecast archives start here; weather models are trained on origins from this date on.
+WX_FROM = pd.Timestamp("2024-01-20", tz="UTC")
 
 
 @dataclass
@@ -53,6 +57,15 @@ class SiteBundle:
     cal_events: int = 0
     detector_thresholds: dict = field(default_factory=dict)
     metrics: dict = field(default_factory=dict)
+    # Optional weather-aware models (same quantiles, trained from WX_FROM). Empty on older bundles.
+    wx_quantile_models: dict = field(default_factory=dict)  # h_steps -> {q: model}
+    wx_horizon_columns: dict = field(default_factory=dict)
+    wx_cqr_margin: dict = field(default_factory=dict)
+    # Conformal margin of the 50/50 blend of the weather GBM and Chronos-2, fitted on the
+    # calibration window (needs the cached Chronos-2 forecasts for that window).
+    blend_margin: dict = field(default_factory=dict)  # h_steps -> float
+    lat: float | None = None  # station coordinates, used to fetch live weather
+    lon: float | None = None
 
 
 def clean_frame_from_raw(raw: dict[str, pd.Series], window_start: pd.Timestamp | None = None) -> pd.DataFrame:
@@ -82,8 +95,23 @@ def clean_frame_from_raw(raw: dict[str, pd.Series], window_start: pd.Timestamp |
     return out
 
 
+def wx_matrix(frame: pd.DataFrame, X: pd.DataFrame, v: pd.Series, W: pd.DataFrame, h: int,
+              rows: pd.DatetimeIndex | None = None) -> pd.DataFrame:
+    """Feature matrix of the weather-aware model for horizon h (steps): the base horizon
+    features, saturation features and weather features, exactly as in the walk-forward runs."""
+    Z = pd.concat([horizon_features(X, v, h), saturation_features(frame, h)], axis=1)
+    idx = frame.index if rows is None else rows
+    if rows is not None:
+        Z = Z.loc[rows]
+    return pd.concat([Z, weather_features(idx, W, h, "fc1")], axis=1)
+
+
 def train_bundle(frame: pd.DataFrame, site_id: str, role: str = "", threshold: float = 5.0,
-                 cal_days: int = 365, stride: int = 4, params: dict | None = None) -> SiteBundle:
+                 cal_days: int = 365, stride: int = 4, params: dict | None = None,
+                 weather: pd.DataFrame | None = None, chronos_cal: pd.DataFrame | None = None) -> SiteBundle:
+    """`weather`: hourly obs_*/fc1_* table for this site; adds weather-aware models.
+    `chronos_cal`: cached Chronos-2 "wx" quantiles (columns wx_q{10,50,90}_{h}, index = hourly
+    origins) over the calibration window; adds the blend margin. Needs `weather`."""
     p = {**PARAMS, **(params or {})}
     v, idx = frame["do"], frame.index
     X = base_features(frame)
@@ -108,6 +136,9 @@ def train_bundle(frame: pd.DataFrame, site_id: str, role: str = "", threshold: f
         b.cqr_margin[h] = cqr_correction(y, np.minimum(lo, hi), np.maximum(lo, hi), alpha=0.2)
         med = v.loc[cal].to_numpy() + models[0.5].predict(Zc)
         b.metrics.setdefault("reference_mae_h", {})[hh] = float(np.nanmean(np.abs(med - y)))
+
+        if weather is not None:
+            _fit_weather_models(b, frame, X, v, weather, h, hh, delta, cal_lo, end, stride, p, chronos_cal)
 
     # ---- direct "any DO below threshold within 24 h" classifier + Platt scaling
     H = STEPS_PER_DAY
@@ -142,12 +173,83 @@ def train_bundle(frame: pd.DataFrame, site_id: str, role: str = "", threshold: f
     return b
 
 
+def _quantile_frame(base: np.ndarray, models: dict, Z: pd.DataFrame, index) -> pd.DataFrame:
+    d = np.sort(np.column_stack([models[q].predict(Z) for q in QUANTILES]), axis=1)
+    return pd.DataFrame(base[:, None] + d, index=index, columns=["q10", "q50", "q90"])
+
+
+def _fit_weather_models(b: SiteBundle, frame, X, v, W, h, hh, delta, cal_lo, end, stride, p, chronos_cal) -> None:
+    idx = frame.index
+    Zw = wx_matrix(frame, X, v, W, h)
+    tr = np.flatnonzero(train_origin_mask(idx, h, cal_lo) & ~np.isnan(delta) & (idx >= WX_FROM))[::stride]
+    if len(tr) < 500:  # too little archived-forecast history to fit; leave the no-weather model in charge
+        return
+    models = {q: HistGradientBoostingRegressor(loss="quantile", quantile=q, **p).fit(Zw.iloc[tr], delta[tr])
+              for q in QUANTILES}
+    cal = (idx > cal_lo) & train_origin_mask(idx, h, end) & ~np.isnan(delta)
+    qc = _quantile_frame(v.loc[cal].to_numpy(), models, Zw.loc[cal], idx[cal])
+    y = v.shift(-h).loc[cal].to_numpy()
+    b.wx_quantile_models[h], b.wx_horizon_columns[h] = models, list(Zw.columns)
+    b.wx_cqr_margin[h] = conformal_margin(y, qc)
+    b.metrics.setdefault("wx_reference_mae_h", {})[hh] = float(np.nanmean(np.abs(qc["q50"].to_numpy() - y)))
+
+    cols = [f"wx_{k}_{hh}" for k in ("q10", "q50", "q90")]
+    if chronos_cal is None or not set(cols) <= set(chronos_cal.columns):
+        return
+    orig = qc.index.intersection(chronos_cal.index)
+    if len(orig) < 200:
+        return
+    ch = chronos_cal.loc[orig, cols].set_axis(["q10", "q50", "q90"], axis=1)
+    bl = blend_quantiles(qc.loc[orig], ch)
+    yo = v.shift(-h).loc[orig].to_numpy()
+    b.blend_margin[h] = conformal_margin(yo, bl)
+    b.metrics.setdefault("blend_reference_mae_h", {})[hh] = float(np.nanmean(np.abs(bl["q50"].to_numpy() - yo)))
+
+
 def _proba(clf, X: pd.DataFrame) -> np.ndarray:
     return np.full(len(X), clf) if isinstance(clf, float) else clf.predict_proba(X)[:, 1]
 
 
-def forecast(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float = 10.0) -> dict:
-    """Forecast, calibrated probability, fault report and action for the latest grid step."""
+def _weather_forecasts(bundle: SiteBundle, frame: pd.DataFrame, W: pd.DataFrame, foundation) -> tuple[list, str]:
+    """Interval forecasts from the weather-aware model, or its blend with Chronos-2.
+
+    Issued from the last whole hour, because the pretrained model is evaluated on hourly origins.
+    Returns ([], "") when the inputs do not allow it, so the caller falls back to the base model."""
+    t = frame.index[-1].floor("h")
+    f = frame.loc[:t]
+    v = f["do"]
+    if f.index[-1] != t or np.isnan(v.iloc[-1]) or not bundle.wx_quantile_models:
+        return [], ""
+    X = base_features(f)
+    now = float(v.iloc[-1])
+    ch = foundation.predict(f, W) if foundation is not None and bundle.blend_margin else None
+    rows, used_blend = [], ch is not None
+    for hh in HORIZONS_H:
+        h = hh * 4
+        if h not in bundle.wx_quantile_models:
+            return [], ""
+        Zr = wx_matrix(f, X, v, W, h, rows=f.index[-1:])[bundle.wx_horizon_columns[h]]
+        g = _quantile_frame(np.array([now]), bundle.wx_quantile_models[h], Zr, f.index[-1:])
+        if ch is not None and h in bundle.blend_margin:
+            c = pd.DataFrame([ch[hh]], columns=["q10", "q50", "q90"], index=g.index)
+            q = apply_margin(blend_quantiles(g, c), bundle.blend_margin[h])
+        else:
+            used_blend = False
+            q = apply_margin(g, bundle.wx_cqr_margin[h])
+        rows.append({"horizon_h": hh, "target_time": (t + hh * 4 * STEP).isoformat(),
+                     "median_mgL": float(q["q50"].iloc[0]), "low_mgL": float(max(0.0, q["q10"].iloc[0])),
+                     "high_mgL": float(q["q90"].iloc[0])})
+    return rows, ("gbm_weather+chronos2" if used_blend else "gbm_weather")
+
+
+def forecast(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float = 10.0,
+             weather: pd.DataFrame | None = None, foundation=None) -> dict:
+    """Forecast, calibrated probability, fault report and action for the latest grid step.
+
+    With `weather` (live table in the training schema) and a bundle that has weather models, the
+    interval forecasts come from the weather-aware model; with `foundation` as well and a fitted
+    blend margin, from the conformalized blend. Faults and probability are unchanged. Any missing
+    piece falls back to the base model, and `forecast_model` says which one answered."""
     days = (frame.index.max() - frame.index.min()).total_seconds() / 86400
     if days < MIN_HISTORY_DAYS:
         raise ValueError(f"need at least {MIN_HISTORY_DAYS} days of history, got {days:.1f}")
@@ -201,19 +303,44 @@ def forecast(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float = 10.0) 
                    # a negative conformal margin must not push the interval past the median
                    "low_mgL": float(max(0.0, min(now + d[0] - m, now + d[1]))),
                    "high_mgL": float(max(now + d[2] + m, now + d[1]))})
+    out["forecast_model"] = "gbm"
+    if weather is not None:
+        try:
+            wfc, name = _weather_forecasts(bundle, frame, weather, foundation)
+        except Exception as e:  # a weather or foundation failure must degrade, never fail the request
+            wfc, name = [], ""
+            out["forecast_model_note"] = f"weather model skipped: {type(e).__name__}"
+        if wfc:
+            fc, out["forecast_model"] = wfc, name
+            out["forecast_issued_from"] = frame.index[-1].floor("h").isoformat()
     out["forecasts"] = fc
 
     # ---- probability of a low-DO episode in the next 24 h, and the action
     p_raw = float(_proba(bundle.clf, X.iloc[[-1]][bundle.clf_columns])[0])
     p = float(bundle.platt.transform(np.array([p_raw]))[0]) if bundle.platt else p_raw
     cutoff = Costs(cost_ratio, 1.0).cutoff
+    # Where the classifier is a real model its calibrated probability decides (it was the cheaper
+    # rule at 9 of 14 sites). A constant classifier means the training data held no low-DO events,
+    # so its probability can never cross a cutoff (USGS-01184000 scored 5.4 cost/week against 0.4-0.6
+    # for the interval rule and 1.1 for "DO < threshold + 0.5"); there the alert reads the interval
+    # forecast: P(DO < threshold) at the worst horizon, taking the conformalized 80% interval as a
+    # normal around its median, against the same cost-derived cutoff. See scripts/run_alert_bound.py.
+    exceed = float(max(prob_below(x["low_mgL"], x["median_mgL"], x["high_mgL"], bundle.threshold_mgL) for x in fc))
+    rule = "forecast_interval" if isinstance(bundle.clf, float) else "probability"
+    trigger = exceed if rule == "forecast_interval" else p
     out["p_low_do_within_24h"] = p
-    out["probability_calibrated"] = bundle.platt is not None
+    out["probability_calibrated"] = bundle.platt is not None and rule == "probability"
+    out["p_low_do_forecast_interval"] = exceed
     out["threshold_mgL"] = bundle.threshold_mgL
     out["alert_cutoff"] = cutoff
+    out["alert_rule"] = rule
     if faults["any"]:
         out["action"], out["reason"] = "maintenance", "possible sensor fault; ecological alerts suppressed"
-    elif p > cutoff:
+    elif trigger > cutoff and rule == "forecast_interval":
+        out["action"] = "warning"
+        out["reason"] = (f"forecast interval puts P(DO < {bundle.threshold_mgL:g} mg/L) at {exceed:.2f} "
+                         f"within 24 h, above the cost-derived cutoff {cutoff:.3f} (no probability model for this site)")
+    elif trigger > cutoff:
         out["action"], out["reason"] = "warning", f"P(DO < {bundle.threshold_mgL:g} mg/L within 24 h) exceeds {cutoff:.3f}"
     else:
         out["action"], out["reason"] = "none", "no action"

@@ -9,5 +9,9 @@ services:
     envVars:
       - key: DOSENTINEL_CORS          # origins allowed to call the API from a browser
         value: https://mounusha25.github.io
+      - key: DOSENTINEL_API_KEYS      # optional; comma-separated. When set, every route but /health needs X-API-Key.
+        sync: false
+      - key: DOSENTINEL_RATE_LIMIT    # requests per client per minute; 0 disables
+        value: "60"
       - key: USGS_API_KEY             # optional; raises the USGS rate limit. Set in the dashboard, never commit it.
         sync: false

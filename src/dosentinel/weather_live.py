@@ -1,0 +1,46 @@
+"""Live weather for serving, in the same column layout the training weather table uses.
+
+Open-Meteo's forecast endpoint returns the recent past (best available analysis) followed by
+the latest forecast. Both are mapped onto the training schema (``obs_*`` and ``fc1_*``):
+
+* ``obs_*``  past hours, used for rain that has already fallen and for the Chronos context;
+* ``fc1_*``  future hours. Training used the forecast issued a day earlier; here it is the
+  latest run, which is at least as fresh. The model sees a slightly better forecast than it was
+  trained on, never a worse one.
+
+No API key is needed. A failure here must never fail a request: callers fall back to the
+no-weather model and say so.
+"""
+from __future__ import annotations
+
+import pandas as pd
+import requests
+
+URL = "https://api.open-meteo.com/v1/forecast"
+VARS = ("precipitation", "temperature_2m", "shortwave_radiation")
+
+
+def parse_hourly(payload: dict) -> pd.DataFrame:
+    """Open-Meteo JSON -> hourly UTC frame with obs_* and fc1_* columns (identical values)."""
+    hourly = payload.get("hourly")
+    if not hourly or "time" not in hourly:
+        raise ValueError("response has no hourly block")
+    idx = pd.to_datetime(hourly["time"], utc=True)
+    out = pd.DataFrame(index=pd.DatetimeIndex(idx, name="time"))
+    for v in VARS:
+        if v not in hourly:
+            raise ValueError(f"response is missing {v}")
+        s = pd.Series(hourly[v], index=idx, dtype=float)
+        out[f"obs_{v}"] = s
+        out[f"fc1_{v}"] = s
+    return out.sort_index()
+
+
+def fetch_live_weather(lat: float, lon: float, past_days: int = 8, forecast_days: int = 2,
+                       timeout: float = 4.0, session: requests.Session | None = None) -> pd.DataFrame:
+    """Hourly weather from `past_days` ago to `forecast_days` ahead. Raises on any failure."""
+    params = {"latitude": lat, "longitude": lon, "hourly": ",".join(VARS), "timezone": "UTC",
+              "past_days": past_days, "forecast_days": forecast_days}
+    r = (session or requests).get(URL, params=params, timeout=timeout)
+    r.raise_for_status()
+    return parse_hourly(r.json())

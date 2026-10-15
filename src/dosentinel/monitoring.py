@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 LOG_FIELDS = ("site_id", "issued_at", "as_of", "horizon_h", "target_time", "median_mgL", "low_mgL",
-              "high_mgL", "p_low_do_within_24h", "action")
+              "high_mgL", "p_low_do_within_24h", "action", "forecast_model")
 
 
 def data_age_minutes(as_of: pd.Timestamp, now: pd.Timestamp | None = None) -> float:
@@ -51,7 +51,8 @@ def log_forecast(report: dict, path: str | Path, issued_at: pd.Timestamp | None 
             "site_id": report["site_id"], "issued_at": issued, "as_of": report["as_of"],
             "horizon_h": f["horizon_h"], "target_time": f["target_time"], "median_mgL": f["median_mgL"],
             "low_mgL": f["low_mgL"], "high_mgL": f["high_mgL"],
-            "p_low_do_within_24h": report.get("p_low_do_within_24h"), "action": report.get("action")}))
+            "p_low_do_within_24h": report.get("p_low_do_within_24h"), "action": report.get("action"),
+            "forecast_model": report.get("forecast_model", "gbm")}))
     if lines:
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -65,6 +66,9 @@ def read_log(path: str | Path) -> pd.DataFrame:
     if not p.exists():
         return pd.DataFrame(columns=LOG_FIELDS)
     df = pd.read_json(p, lines=True)
+    if "forecast_model" not in df.columns:  # logs written before weather models existed
+        df["forecast_model"] = "gbm"
+    df["forecast_model"] = df["forecast_model"].fillna("gbm")
     for c in ("issued_at", "as_of", "target_time"):
         df[c] = pd.to_datetime(df[c], utc=True)
     return df
@@ -92,20 +96,59 @@ class RetrainRule:
     max_age_days: float = 365.0
 
 
-def retrain_decision(scored: pd.DataFrame, reference_mae: dict[int, float], model_age_days: float,
+def retrain_decision(scored: pd.DataFrame, reference_mae: dict, model_age_days: float,
                      missing_do_7d: float, rule: RetrainRule = RetrainRule()) -> dict:
-    """Which, if any, retrain triggers fire. `reference_mae` maps horizon (h) to its evaluation MAE."""
+    """Which, if any, retrain triggers fire.
+
+    `reference_mae` maps horizon (h) to its evaluation MAE, or, to compare each forecaster with
+    its own level, maps a `forecast_model` name to such a dict (names missing from it are
+    compared with the "gbm" entry)."""
     reasons = []
     m = scored.dropna(subset=["abs_error"])
-    if len(m) >= rule.min_scored:
-        for h, g in m.groupby("horizon_h"):
-            ref = reference_mae.get(int(h))
+    per_model = bool(reference_mae) and isinstance(next(iter(reference_mae.values())), dict)
+    groups = ([(name, g) for name, g in m.groupby("forecast_model")] if per_model and "forecast_model" in m
+              else [(None, m)])
+    for name, sub in groups:
+        if len(sub) < rule.min_scored:
+            continue
+        refs = (reference_mae.get(name) or reference_mae.get("gbm", {})) if per_model else reference_mae
+        tag = f" ({name})" if per_model and len(groups) > 1 else ""
+        for h, g in sub.groupby("horizon_h"):
+            ref = refs.get(int(h))
             if ref and g["abs_error"].mean() > rule.error_ratio * ref:
-                reasons.append(f"MAE at {int(h)} h is {g['abs_error'].mean() / ref:.2f}x its evaluation level")
-        if m["inside"].mean() < rule.coverage_floor:
-            reasons.append(f"interval coverage {m['inside'].mean():.2f} below {rule.coverage_floor:.2f}")
+                reasons.append(f"MAE at {int(h)} h{tag} is {g['abs_error'].mean() / ref:.2f}x its evaluation level")
+        if sub["inside"].mean() < rule.coverage_floor:
+            reasons.append(f"interval coverage{tag} {sub['inside'].mean():.2f} below {rule.coverage_floor:.2f}")
     if missing_do_7d > rule.max_missing_do:
         reasons.append(f"{missing_do_7d:.0%} of DO missing over the last 7 days")
     if model_age_days > rule.max_age_days:
         reasons.append(f"model is {model_age_days:.0f} days old")
     return {"retrain": bool(reasons), "reasons": reasons, "scored_forecasts": int(len(m))}
+
+
+# bundle.metrics key holding the calibration-window MAE of each forecaster the API can answer with
+REFERENCE_KEYS = {"gbm": "reference_mae_h", "gbm_weather": "wx_reference_mae_h",
+                  "gbm_weather+chronos2": "blend_reference_mae_h"}
+
+
+def reference_maes(metrics: dict) -> dict[str, dict[int, float]]:
+    """{forecast_model: {horizon_h: MAE}} for the forecasters a bundle has reference numbers for."""
+    return {name: {int(h): float(v) for h, v in metrics[key].items()}
+            for name, key in REFERENCE_KEYS.items() if metrics.get(key)}
+
+
+def site_status(bundle, log: pd.DataFrame, observed_do: pd.Series, now: pd.Timestamp | None = None,
+                rule: RetrainRule = RetrainRule()) -> dict:
+    """One site's retrain verdict from its logged forecasts and the DO series observed since.
+
+    `bundle` needs `.site_id`, `.calibrated_through` and `.metrics`; `observed_do` is the cleaned,
+    UTC-indexed DO series (any frequency the log's target times fall on)."""
+    now = pd.Timestamp.now(tz="UTC") if now is None else pd.Timestamp(now)
+    age = float((now - bundle.calibrated_through).days)
+    recent = observed_do.iloc[-96 * 7:]
+    missing = float(1.0 - recent.notna().mean()) if len(recent) else 1.0
+    mine = log[log["site_id"] == bundle.site_id] if len(log) else log
+    scored = score_log(mine, observed_do.dropna())
+    d = retrain_decision(scored, reference_maes(bundle.metrics), age, missing, rule)
+    return {"site_id": bundle.site_id, "model_age_days": age, "missing_do_7d": missing,
+            "logged_forecasts": int(len(mine)), **d}

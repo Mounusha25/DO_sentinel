@@ -96,3 +96,16 @@ def test_chance_baseline_is_high_when_episodes_are_frequent():
     alert[1000:1010] = True
     c = chance_baseline(episodes, alert, trials=50)
     assert c["chance_cluster_precision"] > 0.9  # almost any alert lands near an episode
+
+
+def test_prob_below_matches_the_normal_cdf_and_is_monotone():
+    import numpy as np
+
+    from dosentinel.blend import prob_below
+    # an interval centred on the threshold puts half the mass below it
+    assert abs(float(prob_below(4.0, 5.0, 6.0, 5.0)) - 0.5) < 1e-12
+    # the 10th percentile sitting exactly on the threshold means 10% below it
+    assert abs(float(prob_below(5.0, 6.0, 7.0, 5.0)) - 0.1) < 1e-9
+    # a wider lower tail (lower q10, same median and q90) can only raise the probability
+    x = prob_below(np.array([4.0, 3.0, 2.0]), 6.0, 8.0, 5.0)
+    assert (np.diff(x) >= 0).all()

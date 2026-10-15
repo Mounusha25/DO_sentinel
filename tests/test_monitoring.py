@@ -45,3 +45,43 @@ def test_retrain_rule_fires_only_with_enough_evidence():
     ok = pd.DataFrame({"horizon_h": 6, "abs_error": 0.5, "inside": 0.8}, index=range(n))
     assert not retrain_decision(ok, {6: 0.5}, 30, 0.05)["retrain"]
     assert retrain_decision(ok, {6: 0.5}, 400, 0.05, RetrainRule())["reasons"] == ["model is 400 days old"]
+
+
+def test_reference_maes_only_lists_forecasters_with_numbers():
+    from dosentinel.monitoring import reference_maes
+    m = {"reference_mae_h": {1: 0.1, 24: 0.5}, "blend_reference_mae_h": {1: 0.08, 24: 0.4}}
+    ref = reference_maes(m)
+    assert set(ref) == {"gbm", "gbm_weather+chronos2"} and ref["gbm"] == {1: 0.1, 24: 0.5}
+    assert reference_maes({}) == {}
+
+
+def test_retrain_decision_compares_each_forecaster_with_its_own_reference():
+    n = 300
+    rows = []
+    for name, err in (("gbm", 0.12), ("gbm_weather+chronos2", 0.20)):
+        for _ in range(n):
+            rows.append({"horizon_h": 1, "abs_error": err, "inside": 1.0, "forecast_model": name})
+    scored = pd.DataFrame(rows)
+    # the blend's own reference is 0.10, so 0.20 is 2x and flags; the GBM is at 0.12 vs 0.10 and does not
+    d = retrain_decision(scored, {"gbm": {1: 0.10}, "gbm_weather+chronos2": {1: 0.10}}, 10, 0.0)
+    assert d["retrain"] and len(d["reasons"]) == 1 and "gbm_weather+chronos2" in d["reasons"][0]
+    # a forecaster without a reference of its own is compared with the base model's
+    d2 = retrain_decision(scored, {"gbm": {1: 0.10}}, 10, 0.0)
+    assert d2["retrain"] and any("gbm_weather+chronos2" in r for r in d2["reasons"])
+
+
+def test_site_status_scores_the_log_against_observed_values():
+    from types import SimpleNamespace
+
+    from dosentinel.monitoring import site_status
+    idx = pd.date_range("2026-06-01", periods=96 * 10, freq="15min", tz="UTC")
+    do = pd.Series(7.0, index=idx)
+    log = pd.DataFrame({
+        "site_id": "S-1", "horizon_h": 1, "issued_at": idx[100], "as_of": idx[100],
+        "target_time": idx[104:304], "median_mgL": 7.0, "low_mgL": 6.5, "high_mgL": 7.5,
+        "p_low_do_within_24h": 0.0, "action": "none", "forecast_model": "gbm"})
+    b = SimpleNamespace(site_id="S-1", calibrated_through=idx[0] - pd.Timedelta(days=30),
+                        metrics={"reference_mae_h": {1: 0.1}})
+    st = site_status(b, log, do, now=idx[-1])
+    assert st["site_id"] == "S-1" and st["logged_forecasts"] == 200 and st["model_age_days"] == 39
+    assert st["retrain"] is False and st["scored_forecasts"] == 200

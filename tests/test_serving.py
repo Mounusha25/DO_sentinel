@@ -200,3 +200,195 @@ def test_fetch_deadline_does_not_block_on_a_hanging_series(monkeypatch):
         api._fetch_live_frame("S-1")
     assert __import__("time").time() - t0 < 2.0
     gate.set()
+
+
+# ---- weather-aware models and the conformalized blend ----------------------------------------
+def _weather(frame, seed=1):
+    idx = pd.date_range(frame.index[0].floor("h") - pd.Timedelta(days=9), frame.index[-1].ceil("h") + pd.Timedelta(days=3),
+                        freq="1h", tz="UTC")
+    rng = np.random.default_rng(seed)
+    t = np.arange(len(idx))
+    air = 12 + 6 * np.sin(2 * np.pi * t / 24) + rng.normal(0, 0.3, len(idx))
+    sun = np.clip(600 * np.sin(2 * np.pi * (t - 6) / 24), 0, None)
+    rain = np.abs(rng.normal(0, 0.2, len(idx)))
+    cols = {}
+    for p in ("obs", "fc1"):
+        cols.update({f"{p}_temperature_2m": air, f"{p}_shortwave_radiation": sun, f"{p}_precipitation": rain})
+    return pd.DataFrame(cols, index=idx)
+
+
+def _chronos_cal(frame, cal_days=40, noise=0.4, seed=2):
+    """Stand-in for cached Chronos-2 quantiles: the truth at each horizon plus noise."""
+    rng = np.random.default_rng(seed)
+    v = frame["do"]
+    origins = v.index[(v.index.minute == 0) & (v.index.hour % 4 == 0) & (v.index > v.index[-1] - pd.Timedelta(days=cal_days))]
+    cols = {}
+    for hh in (1, 3, 6, 12, 24):
+        y = v.shift(-hh * 4).reindex(origins).to_numpy() + rng.normal(0, noise, len(origins))
+        for k, off in (("q10", -0.5), ("q50", 0.0), ("q90", 0.5)):
+            cols[f"wx_{k}_{hh}"] = y + off
+    return pd.DataFrame(cols, index=origins)
+
+
+class _StubFoundation:
+    def __init__(self, bias=0.0):
+        self.bias, self.calls = bias, 0
+
+    def predict(self, frame, W):
+        self.calls += 1
+        base = float(frame["do"].iloc[-1])
+        return {h: (base - 0.5 + self.bias, base + self.bias, base + 0.5 + self.bias) for h in (1, 3, 6, 12, 24)}
+
+
+@pytest.fixture(scope="module")
+def wx_bundle():
+    f = _frame()
+    return train_bundle(f, "S-1", role="test", cal_days=40, stride=4, params=FAST,
+                        weather=_weather(f), chronos_cal=_chronos_cal(f))
+
+
+def test_weather_bundle_has_models_margins_and_blend_margins(wx_bundle):
+    assert set(wx_bundle.wx_quantile_models) == {4, 12, 24, 48, 96}
+    assert set(wx_bundle.blend_margin) == {4, 12, 24, 48, 96}
+    assert all(np.isfinite(m) for m in wx_bundle.wx_cqr_margin.values())
+    assert "wx_reference_mae_h" in wx_bundle.metrics and "blend_reference_mae_h" in wx_bundle.metrics
+
+
+def test_bundle_without_weather_is_unchanged(bundle):
+    assert bundle.wx_quantile_models == {} and bundle.blend_margin == {}
+
+
+def test_forecast_uses_weather_model_then_blend(wx_bundle):
+    f = _frame().iloc[-96 * 30:]
+    W = _weather(_frame())
+    base = forecast(wx_bundle, f)
+    assert base["forecast_model"] == "gbm"
+    wx = forecast(wx_bundle, f, weather=W)
+    assert wx["forecast_model"] == "gbm_weather" and len(wx["forecasts"]) == 5
+    stub = _StubFoundation()
+    bl = forecast(wx_bundle, f, weather=W, foundation=stub)
+    assert bl["forecast_model"] == "gbm_weather+chronos2" and stub.calls == 1
+    for out in (wx, bl):
+        assert out["forecast_issued_from"] == f.index[-1].floor("h").isoformat()
+        for x in out["forecasts"]:
+            assert 0 <= x["low_mgL"] <= x["median_mgL"] <= x["high_mgL"]
+    # the probability, fault flags and action do not depend on which forecaster answered
+    assert bl["p_low_do_within_24h"] == base["p_low_do_within_24h"] and bl["action"] == base["action"]
+
+
+def test_foundation_or_weather_failure_falls_back_instead_of_failing(wx_bundle):
+    f = _frame().iloc[-96 * 30:]
+    W = _weather(_frame())
+
+    class Boom:
+        def predict(self, frame, W):
+            raise RuntimeError("out of memory")
+
+    out = forecast(wx_bundle, f, weather=W, foundation=Boom())
+    assert out["forecast_model"] == "gbm" and "RuntimeError" in out["forecast_model_note"] and len(out["forecasts"]) == 5
+    # weather with no usable columns for the origin hour: also a fallback
+    broken = W.drop(columns=["fc1_precipitation"])
+    assert forecast(wx_bundle, f, weather=broken)["forecast_model"] == "gbm"
+    # no foundation output (e.g. too many gaps in the covariates) keeps the weather model
+    class Nothing:
+        def predict(self, frame, W):
+            return None
+    assert forecast(wx_bundle, f, weather=W, foundation=Nothing())["forecast_model"] == "gbm_weather"
+
+
+def test_blend_margin_is_not_the_members_margin(wx_bundle):
+    # the stub foundation is nearly exact, so the blend is tighter than the weather GBM alone
+    assert wx_bundle.blend_margin[24] != wx_bundle.wx_cqr_margin[24]
+
+
+def test_weather_forecast_ignores_values_after_as_of(wx_bundle):
+    f = _frame()
+    W = _weather(f)
+    cut = 96 * 100
+    a = forecast(wx_bundle, f.iloc[:cut], weather=W)
+    g = f.copy()
+    g.iloc[cut:] = 1e4
+    b = forecast(wx_bundle, g.iloc[:cut], weather=W)
+    assert a["forecasts"] == b["forecasts"]
+
+
+def test_alert_rule_reads_the_forecast_interval_even_with_a_constant_classifier():
+    # no low-DO events before the calibration window: the classifier is a constant and its
+    # probability can never alert; the interval-based rule must still work
+    n = 96 * 140
+    f = _frame(dip=False)
+    t = np.arange(n)
+    f["do"] = np.round(8.0 + 1.0 * np.sin(2 * np.pi * t / 96), 1)
+    f.iloc[-96 * 10:, f.columns.get_loc("do")] -= 3.2  # low DO only inside the final (calibration) window
+    b = train_bundle(f.iloc[:-96 * 8], "S-2", cal_days=40, stride=4, params=FAST)
+    assert isinstance(b.clf, float)
+    low = f.iloc[-96 * 30:].copy()  # ends inside the low-DO stretch
+    ok = f.iloc[-96 * 60:-96 * 30].copy()  # a normal stretch (about 8 mg/L)
+    a, c = forecast(b, low), forecast(b, ok)
+    assert a["alert_rule"] == "forecast_interval" and a["probability_calibrated"] is False
+    assert not a["fault_flags"]["any"] and not c["fault_flags"]["any"]
+    assert a["action"] == "warning" and "forecast interval" in a["reason"]
+    assert a["p_low_do_forecast_interval"] > a["alert_cutoff"]
+    assert c["action"] == "none" and c["p_low_do_forecast_interval"] < c["alert_cutoff"]
+
+
+def test_trained_classifier_keeps_the_probability_rule(bundle):
+    out = forecast(bundle, _frame().iloc[-96 * 30:])
+    assert out["alert_rule"] == "probability" and out["probability_calibrated"] is True
+    assert 0.0 <= out["p_low_do_forecast_interval"] <= 1.0  # reported for every site, used only as the fallback
+
+
+def test_cost_ratio_moves_the_cutoff_not_the_forecast(bundle):
+    f = _frame().iloc[-96 * 30:]
+    lo = forecast(bundle, f, cost_ratio=1.0)
+    hi = forecast(bundle, f, cost_ratio=1000.0)
+    assert hi["alert_cutoff"] < lo["alert_cutoff"]
+    assert lo["p_low_do_forecast_interval"] == hi["p_low_do_forecast_interval"]
+    assert lo["p_low_do_within_24h"] == hi["p_low_do_within_24h"]
+
+
+# ---- access control -------------------------------------------------------------------------
+def _client(bundle, tmp_path, monkeypatch, **env):
+    joblib.dump(bundle, tmp_path / "S-1.joblib")
+    monkeypatch.setenv("DOSENTINEL_MODELS", str(tmp_path))
+    for k in ("DOSENTINEL_API_KEYS", "DOSENTINEL_RATE_LIMIT"):
+        monkeypatch.delenv(k, raising=False)
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    api._bundles.clear()
+    api._hits.clear()
+    return TestClient(api.app)
+
+
+def test_api_is_open_without_keys(bundle, tmp_path, monkeypatch):
+    c = _client(bundle, tmp_path, monkeypatch)
+    assert c.get("/sites").status_code == 200
+
+
+def test_api_key_required_when_configured_but_health_stays_open(bundle, tmp_path, monkeypatch):
+    c = _client(bundle, tmp_path, monkeypatch, DOSENTINEL_API_KEYS="alpha, beta")
+    assert c.get("/health").status_code == 200
+    assert c.get("/sites").status_code == 401
+    assert c.get("/sites", headers={"X-API-Key": "nope"}).status_code == 401
+    assert c.get("/sites", headers={"X-API-Key": "beta"}).status_code == 200
+    # a rejected request still carries CORS headers, so a browser can show the real error
+    r = c.get("/sites", headers={"Origin": "https://mounusha25.github.io"})
+    assert r.status_code == 401 and r.headers.get("access-control-allow-origin") == "https://mounusha25.github.io"
+
+
+def test_rate_limit_returns_429_with_retry_after(bundle, tmp_path, monkeypatch):
+    c = _client(bundle, tmp_path, monkeypatch, DOSENTINEL_RATE_LIMIT="3")
+    codes = [c.get("/sites").status_code for _ in range(5)]
+    assert codes == [200, 200, 200, 429, 429]
+    r = c.get("/sites")
+    assert int(r.headers["Retry-After"]) >= 1
+    assert c.get("/health").status_code == 200  # health checks are never limited
+
+
+def test_rate_limit_is_per_client_and_window_expires():
+    api._hits.clear()
+    assert api.rate_check("a", 2, now=0.0) is None and api.rate_check("a", 2, now=1.0) is None
+    assert api.rate_check("a", 2, now=2.0) is not None
+    assert api.rate_check("b", 2, now=2.0) is None  # another client is unaffected
+    assert api.rate_check("a", 2, now=61.5) is None  # the window has passed
+    assert api.rate_check("a", 0, now=0.0) is None  # 0 disables

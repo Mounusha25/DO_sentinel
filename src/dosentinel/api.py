@@ -7,25 +7,39 @@ POST /forecast/{site_id}   forecasts from series you supply (no network needed)
 """
 from __future__ import annotations
 
+import hmac
 import os
+import threading
 import time
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 
 import joblib
 import pandas as pd
 import yaml
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from .features import PARAM_COLS
 from .ingest import UsgsClient
-from .monitoring import data_age_minutes, input_health, log_forecast, read_log, retrain_decision, score_log
+from .monitoring import (
+    data_age_minutes,
+    input_health,
+    log_forecast,
+    read_log,
+    reference_maes,
+    retrain_decision,
+    score_log,
+)
 from .serving import SiteBundle, clean_frame_from_raw, forecast
+from .weather_live import fetch_live_weather
 
 HISTORY_DAYS = 40
 CACHE_SECONDS = 600
+WEATHER_CACHE_SECONDS = 1800
 FETCH_DEADLINE_S = 35  # hard limit for the whole USGS pull
 CAVEATS = [
     "Alerts built on this probability were competitive with, not better than, a simple 'DO < threshold + 0.5 mg/L' rule in evaluation.",
@@ -35,6 +49,70 @@ CAVEATS = [
 
 app = FastAPI(title="do-sentinel", version="0.1.0",
               description="Short-horizon dissolved-oxygen forecasting, sensor-fault flags and alert decisions.")
+# ---- access control -------------------------------------------------------------------------
+# DOSENTINEL_API_KEYS="key1,key2" requires one of them in the X-API-Key header on every route
+# except /health. DOSENTINEL_RATE_LIMIT=N caps requests per client per minute (default 60; 0
+# disables). Both are off-by-default-safe: with no keys set the API stays public, as before.
+RATE_WINDOW_S = 60.0
+_hits: dict[str, deque] = defaultdict(deque)
+_hits_lock = threading.Lock()
+OPEN_PATHS = {"/health", "/docs", "/openapi.json", "/redoc"}
+
+
+def _api_keys() -> list[str]:
+    return [k.strip() for k in os.environ.get("DOSENTINEL_API_KEYS", "").split(",") if k.strip()]
+
+
+def _rate_limit() -> int:
+    try:
+        return int(os.environ.get("DOSENTINEL_RATE_LIMIT", "60"))
+    except ValueError:
+        return 60
+
+
+def _client_id(request: Request, key: str | None) -> str:
+    if key:
+        return "key:" + key
+    # behind one trusted proxy the *last* X-Forwarded-For entry is the one the proxy appended;
+    # earlier entries are client-supplied and must not be used to dodge the limit
+    fwd = request.headers.get("x-forwarded-for", "")
+    return "ip:" + (fwd.split(",")[-1].strip() if fwd else (request.client.host if request.client else "?"))
+
+
+def rate_check(client: str, limit: int, now: float | None = None) -> float | None:
+    """Record a hit; return seconds to wait if `client` is over `limit` in the window, else None."""
+    if limit <= 0:
+        return None
+    now = time.monotonic() if now is None else now
+    with _hits_lock:
+        q = _hits[client]
+        while q and now - q[0] > RATE_WINDOW_S:
+            q.popleft()
+        if len(q) >= limit:
+            return max(1.0, RATE_WINDOW_S - (now - q[0]))
+        q.append(now)
+        if len(_hits) > 10000:  # bound memory: drop idle clients
+            for k in [k for k, d in _hits.items() if not d or now - d[-1] > RATE_WINDOW_S]:
+                _hits.pop(k, None)
+    return None
+
+
+@app.middleware("http")
+async def access_control(request: Request, call_next):
+    if request.method == "OPTIONS" or request.url.path in OPEN_PATHS:
+        return await call_next(request)
+    keys = _api_keys()
+    given = request.headers.get("x-api-key")
+    if keys and not (given and any(hmac.compare_digest(given, k) for k in keys)):
+        return JSONResponse({"detail": "missing or invalid API key (X-API-Key header)"}, status_code=401)
+    wait_s = rate_check(_client_id(request, given if keys else None), _rate_limit())
+    if wait_s is not None:
+        return JSONResponse({"detail": "rate limit exceeded"}, status_code=429,
+                            headers={"Retry-After": str(int(wait_s) + 1)})
+    return await call_next(request)
+
+
+# Added last so it is outermost: 401/429 responses from the access check still carry CORS headers.
 # Read-only public API: allow browsers on the listed origins (comma-separated) to call it.
 _origins = [o.strip() for o in os.environ.get("DOSENTINEL_CORS", "https://mounusha25.github.io").split(",") if o.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=_origins, allow_methods=["GET", "POST", "OPTIONS"],
@@ -42,6 +120,8 @@ app.add_middleware(CORSMiddleware, allow_origins=_origins, allow_methods=["GET",
 MAX_OBSERVATIONS = 20000  # total points per request (a 40-day history is about 3,840 per series)
 _bundles: dict[str, SiteBundle] = {}
 _cache: dict[str, tuple[float, dict]] = {}
+_wx_cache: dict[str, tuple[float, pd.DataFrame]] = {}
+_foundation_state: dict = {}
 
 
 def models_dir() -> Path:
@@ -55,6 +135,37 @@ def get_bundle(site_id: str) -> SiteBundle:
             raise HTTPException(404, f"no model bundle for site {site_id}")
         _bundles[site_id] = joblib.load(path)
     return _bundles[site_id]
+
+
+def live_weather(bundle: SiteBundle) -> pd.DataFrame | None:
+    """Recent and forecast weather for the site, cached; None when unavailable (callers fall back)."""
+    if not bundle.wx_quantile_models or bundle.lat is None or os.environ.get("DOSENTINEL_WEATHER", "on") == "off":
+        return None
+    now = time.time()
+    hit = _wx_cache.get(bundle.site_id)
+    if hit is not None and now - hit[0] < WEATHER_CACHE_SECONDS:
+        return hit[1]
+    try:
+        W = fetch_live_weather(bundle.lat, bundle.lon)
+    except Exception:  # network, HTTP or schema problems must not fail a forecast
+        return hit[1] if hit is not None and now - hit[0] < 6 * 3600 else None
+    _wx_cache[bundle.site_id] = (now, W)
+    return W
+
+
+def foundation_model():
+    """The pretrained Chronos-2 wrapper when DOSENTINEL_FOUNDATION=chronos2 and its extra is installed."""
+    if "model" not in _foundation_state:
+        _foundation_state["model"] = None
+        if os.environ.get("DOSENTINEL_FOUNDATION", "") == "chronos2":
+            try:
+                import chronos  # noqa: F401
+
+                from .foundation import Chronos2Blender
+                _foundation_state["model"] = Chronos2Blender()
+            except ImportError:
+                pass
+    return _foundation_state["model"]
 
 
 class Observation(BaseModel):
@@ -94,8 +205,11 @@ def log_path() -> Path | None:
 
 
 def _respond(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float, live: bool = False) -> dict:
+    # weather is fetched only for live requests; a POST forecasts from exactly the series supplied
+    weather = live_weather(bundle) if live else None
     try:
-        res = forecast(bundle, frame, cost_ratio)
+        res = forecast(bundle, frame, cost_ratio, weather=weather,
+                       foundation=foundation_model() if weather is not None else None)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
     res["input_health"] = input_health(frame)
@@ -212,10 +326,10 @@ def monitor(site_id: str) -> dict:
     log = log[log["site_id"] == site_id]
     scored = score_log(log, frame["do"].dropna())
     matured = scored.dropna(subset=["abs_error"])
-    ref = {int(h): float(v) for h, v in bundle.metrics.get("reference_mae_h", {}).items()}
+    ref = reference_maes(bundle.metrics)
     age = (pd.Timestamp.now(tz="UTC") - bundle.calibrated_through).days
     decision = retrain_decision(scored, ref, age, 1.0 - input_health(frame)["parameters"]["do"]["observed_7d"])
     by_h = {int(h): {"n": int(len(g)), "mae": float(g["abs_error"].mean()), "coverage": float(g["inside"].mean()),
-                     "reference_mae": ref.get(int(h))} for h, g in matured.groupby("horizon_h")}
+                     "reference_mae": ref["gbm"].get(int(h))} for h, g in matured.groupby("horizon_h")}
     return {"site_id": site_id, "logged_forecasts": int(len(log)), "matured_forecasts": int(len(matured)),
             "by_horizon": by_h, "model_age_days": int(age), "retrain": decision}
