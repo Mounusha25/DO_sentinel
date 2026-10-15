@@ -1,0 +1,27 @@
+# Held-out sites: never used in any modelling or selection decision of this project.
+#
+# Written on 2026-10-15, BEFORE any data for these sites was pulled and before any model was run on
+# them, so the choice cannot depend on results. The frozen pipeline (features, hyper-parameters,
+# calibration windows, decision rules and their cutoffs) is applied to each site's own history.
+#
+# Rule, applied to data/expansion_candidates.csv + data/expansion_profile.csv minus the 14 sites in
+# config/sites.yaml. Common to both tiers: last-year DO completeness >= 0.9 and record >= 1800 days.
+#   Tier A (forecasts, calibration AND alerts): fraction of last-year readings below 5 mg/L >= 0.005.
+#     Take the site with the highest such fraction in each basin-size bin that has one (3 sites).
+#   Tier B (forecasts and calibration only; too few low-DO events for alert claims):
+#     0.002 <= fraction below 5 mg/L < 0.005, one per remaining basin-size bin, then by completeness.
+# Only these 5 sites satisfy the rule; nothing was dropped after the fact.
+parameters:
+  target: '00300'
+  covariates:
+    '00010': temp
+    00095: spcond
+    '63680': turb
+    '00060': discharge
+resolution_minutes: 15
+sites:
+- {id: USGS-0164579522, name: The Glade near Howland Drive at Reston VA, state: Virginia, role: tbd, tier: A, bin: "<50", drainage_sqmi: 1.14}
+- {id: USGS-08181800, name: San Antonio Rv nr Elmendorf TX, state: Texas, role: tbd, tier: A, bin: 500-5k, drainage_sqmi: 1743.0}
+- {id: USGS-03216070, name: Ohio River at Ironton OH, state: Ohio, role: tbd, tier: A, bin: ">5k", drainage_sqmi: 60825.0}
+- {id: USGS-0422018610, name: Oak Orchard Creek at the Bridges NY, state: New York, role: tbd, tier: B, bin: 50-500, drainage_sqmi: 272.0}
+- {id: USGS-03433500, name: Harpeth River at Bellevue TN, state: Tennessee, role: tbd, tier: B, bin: 50-500, drainage_sqmi: 409.0}
