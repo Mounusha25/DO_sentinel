@@ -1,40 +1,36 @@
 # do-sentinel
 
-Short-horizon **dissolved-oxygen forecasting**, **sensor-fault detection** and **alert triage** for stream sensors, built on public USGS data and evaluated against strong baselines with confidence intervals.
+Short-horizon **dissolved-oxygen forecasting**, **sensor-fault detection** and **alert triage** for stream sensors, built on public USGS data. Forecasts beat strong baselines by 8 to 31% depending on horizon, intervals are conformally calibrated, and every claim is evaluated walk-forward with confidence intervals, including what did not work.
 
-**Live:** [Dashboard](https://mounusha25.github.io/DO_sentinel/) · [Case study](https://mounusha25.github.io/DO_sentinel/case-study.html) · [API docs](https://do-sentinel-api.onrender.com/docs) · [Model card](MODEL_CARD.md) · [Problem definition](PROBLEM.md) · [All results](reports/RESULTS.md)
+**Live:** [Dashboard](https://mounusha25.github.io/DO_sentinel/) · [Case study](https://mounusha25.github.io/DO_sentinel/case-study.html) · [API docs](https://do-sentinel-api.onrender.com/docs) · [Model card](MODEL_CARD.md) · [Problem definition](PROBLEM.md) · [All results](reports/RESULTS.md) · [Operating notes](OPERATIONS.md)
 
 [![DO Sentinel dashboard: map, triage queue and a forecast with its 80% interval](docs/assets/dashboard.png)](https://mounusha25.github.io/DO_sentinel/)
 
-## What it does
+## The problem
 
-A field team maintains dozens of oxygen sensors on streams. Low oxygen kills fish, and sensors also fail. Each morning the team has to decide which sites need attention in the next 24 hours: a likely low-oxygen event, or a sensor that cannot be trusted. This project forecasts oxygen 1 to 24 hours ahead with calibrated uncertainty, estimates the chance of falling below 5 mg/L, flags suspect readings, and turns that into one of three actions: **warning**, **check sensor**, or **no action**. The user, decision and success criteria are fixed in [PROBLEM.md](PROBLEM.md), with a scorecard against them.
+A field team maintains dozens of oxygen sensors on streams. Low oxygen kills fish, and sensors also fail. Each morning the team must decide which sites need attention in the next 24 hours: a likely low-oxygen event, or a sensor that cannot be trusted. This project forecasts oxygen 1 to 24 hours ahead with calibrated uncertainty, estimates the chance of falling below 5 mg/L, flags suspect readings, and turns that into one of three actions: **warning**, **check sensor** or **no action**. The user, decision and success criteria are fixed in [PROBLEM.md](PROBLEM.md), with a scorecard.
 
 ## Results at a glance
 
-Fourteen sites in 11 states, five years of 15-minute data, one full year of out-of-sample testing. Skill is the reduction in average error against the best simple baseline.
+Fourteen sites in 11 states, five years of 15-minute data, one year of out-of-sample testing. Skill is the reduction in mean absolute error against the best simple baseline per site.
 
 | Question | Answer |
 |---|---|
-| Do forecasts beat simple baselines? | Yes: **25% less error at 6 h, 18% at 12 h, 8% at 24 h** (14% with weather). Better at 13 to 14 of 14 sites. |
-| Are the uncertainty ranges honest? | Raw 80% intervals covered 71 to 76%. After conformal calibration, **78 to 79%** (the blend below: 80.5 to 81.2% walk-forward). |
-| Is the low-oxygen probability informative? | Yes up to 6 h: it beats a "current state only" forecaster at about 80% of sites. |
-| Do forecast-based alerts beat a one-line rule? | **On cost at a 10:1 miss:false-alarm ratio, yes**: 0.9 to 1.1 against 3.6 per site-week, and 13 of 14 sites for the forecast-interval rule (recall 0.99 against 0.76, at lower precision and about 1.3 alerts per site per week, above the 0.5 budget). Between the two forecast-based rules there is no significant difference. |
-| Can sensor faults be detected? | Injected spikes 84%, stuck near zero 99%, offsets 65%, flatlines 59%. |
-| Does weather help? | +8.6% at 24 h, mostly through sunlight and temperature, not rain. It does not improve alerts. |
-| Does a pretrained foundation model help? | Blended 50/50 with the weather boosting it raises skill to **+22 / +29 / +31 / +24 / +16%** at 1 / 3 / 6 / 12 / 24 h, at 14 of 14 sites, with 80.5 to 81.2% walk-forward conformal coverage. In the API as an opt-in (needs the `foundation` extra); the default image serves the weather boosting. |
-| Is the boosting more than a linear model? | Yes, by 4 to 11% MAE at 11 to 13 of 14 sites; a ridge model keeps about 70% of its gain at 6 to 12 h. |
+| Do forecasts beat simple baselines? | **Yes.** The weather-aware boosting gives +24% at 6 h and +14% at 24 h; blended 50/50 with a pretrained model (Chronos-2) it reaches **+31% at 6 h and +16% at 24 h**, at 14 of 14 sites. |
+| Are the uncertainty ranges honest? | Raw 80% intervals covered 71 to 76%. After conformal calibration they cover **78 to 79%** (blend, walk-forward: 80.5 to 81.2%). |
+| Is the low-oxygen probability useful? | Yes up to 6 h: better than a "current state only" forecaster at about 80% of sites. |
+| Do forecast-based alerts beat a one-line rule? | On cost at a 10:1 miss:false-alarm ratio, **yes** (0.9 to 1.1 against 3.6 per site-week). Between the classifier and the interval rule there is no significant difference. |
+| Can sensor faults be detected? | Injected spikes 84%, stuck near zero 99%, offsets 65%, flatlines 59%. Slow drift: no. |
+| Is the boosting more than a linear model? | Yes, by 4 to 11% MAE at 11 to 13 of 14 sites. |
 
 ## What did not work
 
-These are reported, not hidden:
+- **Slow sensor drift** cannot be detected from one sensor, nor with a neighbouring sensor within 70 km. An early 28% detection rate was chance; a zero-drift control gave the same.
+- **The 0.5 alerts/site/week budget** is met only by the classifier (0.75 anticipated recall against 0.32 for a margin rule). The interval rule sends about 1.3 alerts per site-week, so it is used only where a site has no trained classifier.
+- **A global model across sites**, and predicting percent saturation, were worse than per-site models.
+- **Weather** helps 24 h forecasts (+8.6%) but not alerts.
 
-- **Slow sensor drift cannot be detected** from one sensor, nor with a neighbouring sensor within 70 km (checked at three pairs). An early result of 28% detection was chance; a zero-drift control gave the same rate.
-- **The alert volume budget is only met by the classifier.** At 0.5 alerts per site per week (the PROBLEM.md budget) the classifier reaches 0.75 anticipated recall against 0.32 for the margin rule; the interval rule, at its cost-derived cutoff, sends about 1.3 alerts per site per week, so it is used only where a site has no trained classifier.
-- **A global model across sites, and predicting percent saturation, were worse** than per-site models.
-- **One site has no usable probability model**: no low-oxygen events in its training data.
-
-Several early results looked better than they were and were corrected; see the "mistakes I caught" section of the case study.
+Several early results looked better than they were and were corrected; see "mistakes I caught" in the case study.
 
 ## How it works
 
@@ -64,7 +60,7 @@ data/              site-selection tables, coordinates and the data manifest (see
 results/           result tables written by the scripts (see results/README.md)
 reports/           RESULTS.md (all experiments) and EDA.md with figures
 models/            trained per-site bundles used by the API
-PROBLEM.md  MODEL_CARD.md  render.yaml  Dockerfile  requirements-lock.txt
+PROBLEM.md  MODEL_CARD.md  OPERATIONS.md  render.yaml  Dockerfile  requirements-lock.txt
 ```
 
 ## Run it
@@ -93,26 +89,9 @@ python scripts/make_manifest.py --check    # verify processed data against data/
 
 Experiment scripts and what each produces are indexed in [scripts/README.md](scripts/README.md). The pretrained-model experiments need the `foundation` extra (`pip install -e ".[foundation]"`) and were run in a separate virtual environment.
 
-## Deployment
+## Operating it
 
-| Part | Where |
-|---|---|
-| Dashboard and case study (static) | GitHub Pages, from `docs/` |
-| API (live forecasts) | any container host; `render.yaml` is a Render blueprint |
-
-Operating notes:
-
-- **Forecast model.** A live request fetches weather from Open-Meteo (no key) and answers from the weather-aware boosting. Every response has `forecast_model`: `gbm_weather+chronos2` (when `DOSENTINEL_FOUNDATION=chronos2` and the `foundation` extra is installed), `gbm_weather`, or `gbm` when weather or the pretrained model is unavailable. Failures degrade; they never fail the request. `DOSENTINEL_WEATHER=off` disables the weather fetch. `POST /forecast/{site}` forecasts only from the series you send, with the base model.
-- **Access control (optional).** `DOSENTINEL_API_KEYS="k1,k2"` requires `X-API-Key` on everything except `/health` and the docs. `DOSENTINEL_RATE_LIMIT` caps requests per client per minute (default 60, 0 disables); behind a proxy the client is the last `X-Forwarded-For` entry.
-- **A USGS API key is required on a shared host.** Anonymous requests from a cloud address share a quota with other users of that address; the deployed service received HTTP 429 with `Retry-After` of 2 to 11 minutes until a key was set. Set `USGS_API_KEY` in the host's dashboard, never in the repository. With a key a live forecast costs five requests per site and is cached for ten minutes.
-- **The endpoint fails fast.** Series are fetched concurrently under a 35 s deadline; on failure it returns 503 with `Retry-After`, or the last good data marked `stale`. `POST /forecast/{site}` with your own series needs no USGS access.
-- **Public and unauthenticated.** Payloads are capped at 20,000 observations and CORS is limited to `DOSENTINEL_CORS`. Add authentication before using it for more than a demonstration.
-- **Free tiers sleep**, so the first request after a pause can take about a minute.
-- **Models do not update themselves.** They were trained through 2025-10 and calibrated on the following year; the retraining policy is in the model card. `python scripts/retrain.py --log <forecast log>` applies the retrain rule to every site and, with `--apply`, retrains the flagged ones into `models_new/`. A scheduled job still has to pull fresh data first.
-
-## Monitoring
-
-Each live response reports data age and input completeness. With `DOSENTINEL_LOG` set, every served forecast is logged and later scored against observed values (this is the forward holdout described in PROBLEM.md). `GET /monitor/{site}` scores matured forecasts and applies the retrain rule: live error more than 1.25 times its evaluation level (with at least 200 matured forecasts), interval coverage below 0.65, more than 30% of DO missing over a week, or a model older than a year.
+Deployment, the live-request behaviour (weather fetch, fallbacks, optional API keys and rate limit), monitoring and the retrain rule are in [OPERATIONS.md](OPERATIONS.md).
 
 ## Limitations
 
