@@ -659,16 +659,18 @@ function buildEvidence(){
   $("ev-grid").innerHTML = out.join("");
   const w = E.weather24, s6 = E.skill.find(s=>s.h===6), s24 = E.skill.find(s=>s.h===24);
   $("notworked").innerHTML = `<h3>What did not work</h3><ul>
-    <li><b>Forecast-based alerts barely beat a one-line rule.</b> At 0.5 alerts per site per week the forecast warns of ${Math.round(E.alerts.find(a=>a.budget===0.5).model*100)}% of events against ${Math.round(E.alerts.find(a=>a.budget===0.5).naive*100)}% for “alert when DO is below 5.5”; with more alerts allowed the simple rule is as good or better, and the difference across 14 sites is not statistically established.</li>
+    <li><b>Forecast-based alerts beat a one-line rule only at low alert volume, or on cost.</b> At 0.5 alerts per site per week the forecast warns of ${Math.round(E.alerts.find(a=>a.budget===0.5).model*100)}% of events against ${Math.round(E.alerts.find(a=>a.budget===0.5).naive*100)}% for “alert when DO is below 5.5”; with more alerts allowed the simple rule is as good or better on recall, and the difference across 14 sites is not statistically established. When a miss costs ten false alarms, forecast-based rules cost about a third as much as the simple rule (see the results report).</li>
     <li><b>Slow sensor drift cannot be detected from one sensor.</b> The first result showed ${Math.round(E.drift[E.drift.length-1].real*100)}% detection; the no-drift control gave ${Math.round(E.drift[E.drift.length-1].null*100)}% on the same windows.</li>
-    <li><b>The pretrained model added almost nothing.</b> Blending it in cut the 6 h error from ${s6.mae_gbm.toFixed(2)} to ${s6.mae_blend.toFixed(2)} mg/L, below the 0.1 mg/L reading resolution, so it is an experiment and not part of the product.</li>
+    <li><b>The pretrained model helps, but by less than the sensor can resolve.</b> Boosting with weather and the pretrained model together cut the 6 h error from ${s6.mae_gbm.toFixed(2)} to ${s6.mae_blend.toFixed(2)} mg/L, below the 0.1 mg/L reading resolution. It is available as an opt-in because it needs a 119M-parameter model; the default service uses the weather-aware boosting alone.</li>
     <li><b>Weather helps the 24 h forecast, but through sunlight and temperature more than rain</b> (${Math.round(w.atmos*1000)/10}% from temperature and sunlight, ${Math.round(w.rain*1000)/10}% from rain), and it does not improve low-oxygen alerts.</li></ul>`;
 }
 
 /* ---------- live mode ---------- */
 function toRow(rep){
   let fl = 0; D.flag_keys.forEach((k,b)=>{ if(rep.fault_flags && rep.fault_flags[k]) fl |= (1<<b); });
-  return {p:rep.p_low_do_within_24h, do:rep.latest_do_mgL, obs:rep.observed_fraction_last_24h, fl,
+  // the probability that drives the action: the classifier's, or the forecast interval's where a site has none
+  const p = rep.alert_rule==="forecast_interval" ? rep.p_low_do_forecast_interval : rep.p_low_do_within_24h;
+  return {p, do:rep.latest_do_mgL, obs:rep.observed_fraction_last_24h, fl,
           f:(rep.forecasts||[]).map(x=>[x.low_mgL, x.median_mgL, x.high_mgL])};
 }
 function renderAll(){ renderControls(); renderKPIs(); renderMap(); renderQueue(); renderDetail(); }
@@ -706,7 +708,7 @@ function stop(){ st.playing = false; clearInterval(st.timer); renderControls(); 
 function init(){
   $("f-train").textContent = d3.utcFormat("%d %b %Y")(new Date(SITES[0].trained_through));
   $("slider").max = N-1;
-  $("replay-note").textContent = `Real forecasts replayed for ${fmtDay(T[0])} to ${fmtDay(T[N-1])}, every 6 hours. The dotted line shows what actually happened.`;
+  $("replay-note").textContent = `Real forecasts from the weather-aware model replayed for ${fmtDay(T[0])} to ${fmtDay(T[N-1])}, every 6 hours. The dotted line shows what actually happened.`;
   buildMap();
   // default: the latest time that has a mix of statuses including a sensor check
   let best = N-1, bestScore = -1;

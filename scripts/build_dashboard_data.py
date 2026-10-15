@@ -3,7 +3,10 @@
     python scripts/build_dashboard_data.py
 
 Replay: real forecasts from models/*.joblib at every 6th hour over the last 30 days, for all
-sites, plus hourly observed DO around that window. Evidence: tables read from results/.
+sites, plus hourly observed DO around that window. Forecasts use the weather-aware model with the
+archived day-ahead weather forecast (what a live request would have had); `p` is the probability
+that drives the action: the classifier's, or the forecast interval's where a site has no trained
+classifier. Evidence: tables read from results/.
 Writes dashboard/data.json.
 """
 from __future__ import annotations
@@ -23,6 +26,7 @@ sys.path.insert(0, "src")
 from dosentinel.features import load_site_frame  # noqa: E402
 from dosentinel.serving import forecast  # noqa: E402
 from dosentinel.stats import skill_ci  # noqa: E402
+from dosentinel.weather import load_weather  # noqa: E402
 
 R = Path("results")
 OUT = Path("dashboard")
@@ -53,19 +57,25 @@ REGIME = {"flashy": "Flashy stream", "flashy_urban": "Flashy urban stream", "reg
 def replay_site(sid: str, asofs: list[str]) -> dict:
     b = joblib.load(f"models/{sid}.joblib")
     f = load_site_frame(sid, "data/clean")
-    out = []
+    W = load_weather(sid) if b.wx_quantile_models else None
+    out, used = [], set()
     t0 = time.time()
     for a in asofs:
         t = pd.Timestamp(a)
-        rep = forecast(b, f.loc[:t].iloc[-96 * 40:], 10.0)
+        rep = forecast(b, f.loc[:t].iloc[-96 * 40:], 10.0, weather=W)
+        used.add(rep.get("forecast_model"))
         fl = rep["fault_flags"]
-        row = {"p": None if rep["p_low_do_within_24h"] is None else round(rep["p_low_do_within_24h"], 4),
+        p = rep["p_low_do_within_24h"]
+        if rep.get("alert_rule") == "forecast_interval":
+            p = rep["p_low_do_forecast_interval"]
+        row = {"p": None if p is None else round(p, 4),
                "do": None if rep["latest_do_mgL"] is None else round(rep["latest_do_mgL"], 2),
                "obs": round(rep["observed_fraction_last_24h"], 3),
                "fl": int(sum((1 << i) for i, k in enumerate(FLAG_KEYS) if fl.get(k))),
                "f": [[round(x["low_mgL"], 2), round(x["median_mgL"], 2), round(x["high_mgL"], 2)] for x in rep["forecasts"]]}
         out.append(row)
-    return {"site": sid, "rows": out, "seconds": round(time.time() - t0, 1),
+    return {"site": sid, "rows": out, "seconds": round(time.time() - t0, 1), "models": sorted(m for m in used if m),
+            "rule": "forecast_interval" if isinstance(b.clf, float) else "probability",
             "trained_through": b.trained_through.isoformat(), "calibrated_through": b.calibrated_through.isoformat()}
 
 
@@ -94,6 +104,7 @@ def main() -> None:
             "lat": coords[sid]["lat"], "lon": coords[sid]["lon"], "regime": REGIME.get(s["role"], s["role"]),
             "area": s["drainage_sqmi"], "low_day_share": round(float((dm < 5).mean()), 3),
             "trained_through": by[sid]["trained_through"], "calibrated_through": by[sid]["calibrated_through"],
+            "alert_rule": by[sid]["rule"],
             "series": [None if np.isnan(v) else round(float(v), 2) for v in do.to_numpy()],
             "replay": by[sid]["rows"]})
 
@@ -140,7 +151,8 @@ def main() -> None:
                    "drift": float(fk.loc["interval_1h", "drift"])},
         "weather24": weather,
     }
-    data = {"asofs": asofs, "horizons": HOURS, "flag_keys": FLAG_KEYS, "series_start": hours[0].isoformat(),
+    models = sorted({m for r in res for m in r["models"]})
+    data = {"asofs": asofs, "forecast_models": models, "horizons": HOURS, "flag_keys": FLAG_KEYS, "series_start": hours[0].isoformat(),
             "sites": sites, "evidence": evidence, "generated": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds")}
     p = OUT / "data.json"
     p.write_text(json.dumps(data, separators=(",", ":")))
