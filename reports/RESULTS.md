@@ -18,7 +18,8 @@ Sections: [1 Forecasting and alerts](#1-forecasting-calibration-alerts-and-trans
 [6 Classical baseline](#6-classical-statistical-baseline) · [7 Fault detection](#7-sensor-fault-detection-synthetic-benchmark) ·
 [8 Conformalized blend](#8-the-chronos-2--gradient-boosting-blend-with-walk-forward-conformal-intervals) ·
 [9 Alerting on the forecast interval](#9-alerting-on-the-forecast-interval) ·
-[10 Linear baseline](#10-a-well-specified-linear-model) · [11 Peer sensor and drift](#11-does-a-neighbouring-sensor-help-detect-drift)
+[10 Linear baseline](#10-a-well-specified-linear-model) · [11 Peer sensor and drift](#11-does-a-neighbouring-sensor-help-detect-drift) ·
+[12 Input drift monitoring](#12-input-drift-monitoring)
 
 ## 1. Forecasting, calibration, alerts and transfer (14 sites, 5 years of history, 2-year walk-forward test)
 
@@ -253,3 +254,30 @@ without 15-day-lag anchors. Windowed residuals are thresholded at 0.67 false fla
   produce 1-16 false flags per site-week for the peer detectors (target 0.67), so the deployable version is worse.
 - With 6 target sites and about 90 injected events per magnitude, small differences are noise. Do not rely on a
   neighbouring sensor for drift; scheduled field checks remain the control (see section 7).
+
+## 12. Input drift monitoring
+
+Does the standard population-stability check work on these streams? `scripts/build_drift_reference.py` builds, per
+site, feature and calendar month, a ten-bin quantile sketch of the training years (everything up to the bundle's
+`trained_through`, about 140,000 rows per site). The current 30 days are compared with the same calendar month
+(`src/dosentinel/drift.py`).
+
+- **The conventional PSI thresholds do not transfer.** Against the pooled training month, the held-out year scored
+  a median PSI of 0.9 for DO and 1.1 to 3.0 for temperature, conductance, turbidity and discharge, and 98% of
+  site-months exceeded 0.25 for conductance. Scoring a *training* year against the other training years of the same
+  month gives 0.5 to 2.4 at a single site (USGS-02344630, September), so the cause is interannual hydrology, not
+  drift.
+- **The baseline has to be the site's own year-to-year spread.** Each training year's month is scored against the
+  other years (leave-one-year-out), and a window is "stable" within the 90th percentile of those, "moderate" within
+  their maximum, "elevated" within twice it and "major" beyond. On the held-out year (12 windows of 30 days at 14
+  sites) a single input was "major" in 10% of site-windows per feature and in 33% of site-windows for any of the five;
+  requiring two or more inputs to be "major" gave an alert rate of 10% of site-windows (2% for three or more).
+  Because four or five training years give an exceedance probability of 1/5 to 1/6 by chance, a single-input rule
+  would be mostly noise.
+- **Caveats.** The two-input rule and the factor of two were chosen after seeing the held-out year, so the quoted
+  10% is optimistic; there is no labelled drift here, so this measures false-alert rate, not detection power;
+  injected shifts of 3 mg/L DO, 8 C and a threefold conductance change are caught in the unit tests (and a normal
+  year is not); 30 days of 15-minute data are strongly autocorrelated, so a "moderate" reading means "look".
+- Output drift (the latest two weeks of the forecast log against the previous two, on the 24 h median and the
+  low-DO probability) uses the conventional thresholds because there is no history to judge it against, and is
+  informational only.

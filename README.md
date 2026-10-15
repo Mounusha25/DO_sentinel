@@ -44,6 +44,8 @@ Several early results looked better than they were and were corrected; see "mist
 | Decide | cost-derived cutoff on the classifier probability, or on the forecast interval where there is no trained classifier; episode-level scoring against chance; sensor-suspect suppression | `decision.py`, `serving.py` |
 | Detect faults | causal detectors, synthetic-fault benchmark with a null experiment | `detect.py`, `faults.py` |
 | Serve and monitor | FastAPI in Docker, forecast log, scoring of matured forecasts, retrain rule | `serving.py`, `api.py`, `monitoring.py` |
+| Drift and scheduled scoring | PSI against each site's own year-to-year variability; a six-hourly GitHub Actions job issues, scores and reports | `drift.py`, `monitoring_job.py`, `.github/workflows/monitor.yml` |
+| Experiment tracking | MLflow runs tagged with commit and data hash | `tracking.py` |
 
 Evaluation is chronological and walk-forward; preprocessing, thresholds and calibration are fit only on earlier data; comparisons use identical origins; intervals are cluster bootstraps. Details and every number are in [reports/RESULTS.md](reports/RESULTS.md).
 
@@ -52,7 +54,7 @@ Evaluation is chronological and walk-forward; preprocessing, thresholds and cali
 ```
 src/dosentinel/    library: ingest, validate, features, models, calibration, decision, faults, serving, api
 scripts/           runnable pipelines and experiments (see scripts/README.md)
-tests/             129 tests, including leakage tests for every forecaster and feature set
+tests/             151 tests, including leakage tests for every forecaster and feature set
 dashboard/         template, precomputed replay data and US map for the dashboard
 docs/              built dashboard and case study (served by GitHub Pages)
 config/            sites.yaml: the 14 sites, their selection rationale and exclusions
@@ -67,7 +69,7 @@ PROBLEM.md  MODEL_CARD.md  OPERATIONS.md  render.yaml  Dockerfile  requirements-
 
 ```bash
 pip install -e ".[dev,serve]"              # Python 3.11 or newer
-pytest                                     # 129 tests
+pytest                                     # 151 tests
 ruff check src scripts tests               # lint
 
 python scripts/build_dashboard.py          # rebuild docs/index.html from dashboard/

@@ -23,3 +23,42 @@ Operating notes:
 ## Monitoring
 
 Each live response reports data age and input completeness. With `DOSENTINEL_LOG` set, every served forecast is logged and later scored against observed values (this is the forward holdout described in PROBLEM.md). `GET /monitor/{site}` scores matured forecasts and applies the retrain rule: live error more than 1.25 times its evaluation level (with at least 200 matured forecasts), interval coverage below 0.65, more than 30% of DO missing over a week, or a model older than a year.
+
+## Scheduled monitoring and the forward holdout
+
+`.github/workflows/monitor.yml` runs `scripts/run_monitoring.py` every six hours (and on demand). Each
+cycle, for every site: fetches live USGS data, issues a forecast (logged with the model that answered
+and why weather was or was not used), scores every logged forecast whose target time has passed, applies
+the retrain rule, and checks input drift. State is kept on a `monitoring` branch, never on `main`:
+
+| File on the `monitoring` branch | Contents |
+|---|---|
+| `forecasts.jsonl` | every issued forecast, one line per horizon |
+| `scored.csv` | cumulative matured forecasts with observed value, error and interval hit (each scored once) |
+| `report.json`, `report.md` | latest cycle: failed sites, retrain recommendations, drift alerts, forward-holdout MAE and coverage per forecaster and horizon |
+
+Secrets: `USGS_API_KEY` (runner addresses are shared, so the anonymous quota is exhausted quickly) and
+optionally `OPEN_METEO_API_KEY`. Without the weather key, forecasts fall back to the base model and the
+report shows `fetch_failed` in the Weather column. Run it locally with
+`python scripts/run_monitoring.py --state monitoring_state`.
+
+Scoring is what makes the forward holdout in PROBLEM.md real: nothing in `scored.csv` was seen by any
+modelling decision. Early rows are few (14 sites, four issues a day), so read it after a few weeks.
+
+## Drift
+
+`GET /drift/{site}` and the monitoring report compare the last 30 days of each input (DO, temperature,
+conductance, log turbidity, log discharge) with the same calendar month of the training years, using PSI
+judged against the site's own year-to-year variability (`models/drift_reference.json`, built by
+`scripts/build_drift_reference.py`; rebuild it when bundles are retrained). A site alerts when two or more
+inputs are far outside anything seen in training. Fixed PSI thresholds (0.1 / 0.25) were measured and
+rejected: the same month of different years scores 0.5 to 2.4 on these streams. Output drift (the last
+two weeks of the forecast log against the two before) is informational.
+
+## Experiment tracking
+
+The experiment scripts, `train_models.py` and the monitoring job log to a local MLflow store
+(`pip install -e ".[tracking]"`; `mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db`). Each run
+carries the git commit, whether the tree was dirty, and a hash of `data/MANIFEST.json`, the parameters,
+headline metrics and the result tables as artifacts. `DOSENTINEL_TRACKING=off` disables it; a missing
+MLflow never breaks a script.

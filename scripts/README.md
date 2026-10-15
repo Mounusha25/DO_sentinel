@@ -39,6 +39,8 @@ Install the package first (`pip install -e ".[dev,serve]"`); scripts marked *exp
 | Script | What it does |
 |---|---|
 | `train_models.py` | Trains and saves one serving bundle per site into `models/` (weather models and blend margins when the weather tables and Chronos-2 cache exist) |
+| `run_monitoring.py` | One monitoring cycle: issue, score, retrain rule, drift; used by the scheduled workflow | `report.json` / `report.md` in `--state` |
+| `build_drift_reference.py` | Per-site, per-month histogram sketches and year-to-year PSI baselines of the training period | `models/drift_reference.json` |
 | `retrain.py` | Applies the retrain rule to each site from the forecast log; `--apply` retrains flagged sites into `models_new/` |
 | `build_dashboard_data.py` | Precomputes replay forecasts and evidence tables into `dashboard/data.json` (needs `models/` and the result parquet files) |
 | `build_dashboard.py` | Template + data + map into `docs/index.html` |
