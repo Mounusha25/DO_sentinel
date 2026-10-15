@@ -17,6 +17,7 @@ import pandas as pd
 import requests
 
 URL = "https://api.open-meteo.com/v1/forecast"
+URL_KEYED = "https://customer-api.open-meteo.com/v1/forecast"  # used when an API key is configured
 VARS = ("precipitation", "temperature_2m", "shortwave_radiation")
 
 
@@ -36,11 +37,26 @@ def parse_hourly(payload: dict) -> pd.DataFrame:
     return out.sort_index()
 
 
+class WeatherUnavailable(Exception):
+    """The weather provider answered with an error; the message carries the HTTP status and reason."""
+
+
 def fetch_live_weather(lat: float, lon: float, past_days: int = 8, forecast_days: int = 2,
-                       timeout: float = 4.0, session: requests.Session | None = None) -> pd.DataFrame:
-    """Hourly weather from `past_days` ago to `forecast_days` ahead. Raises on any failure."""
+                       timeout: float = 4.0, session: requests.Session | None = None,
+                       api_key: str | None = None) -> pd.DataFrame:
+    """Hourly weather from `past_days` ago to `forecast_days` ahead. Raises on any failure.
+
+    With `api_key` the commercial endpoint is used, which is not subject to the shared-IP
+    limits of the free one (cloud hosts share an address, and the free tier throttles it)."""
     params = {"latitude": lat, "longitude": lon, "hourly": ",".join(VARS), "timezone": "UTC",
               "past_days": past_days, "forecast_days": forecast_days}
-    r = (session or requests).get(URL, params=params, timeout=timeout)
-    r.raise_for_status()
+    if api_key:
+        params["apikey"] = api_key
+    r = (session or requests).get(URL_KEYED if api_key else URL, params=params, timeout=timeout)
+    if getattr(r, "status_code", 200) != 200:
+        try:
+            reason = str(r.json().get("reason", ""))[:100]
+        except Exception:
+            reason = ""
+        raise WeatherUnavailable(f"HTTP {r.status_code} {reason}".strip())
     return parse_hourly(r.json())

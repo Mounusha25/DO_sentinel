@@ -40,6 +40,7 @@ from .weather_live import fetch_live_weather
 HISTORY_DAYS = 40
 CACHE_SECONDS = 600
 WEATHER_CACHE_SECONDS = 1800
+WEATHER_RETRY_SECONDS = 300  # after a failed fetch, do not try again (and pay its latency) for this long
 FETCH_DEADLINE_S = 35  # hard limit for the whole USGS pull
 CAVEATS = [
     "Alerts built on this probability were competitive with, not better than, a simple 'DO < threshold + 0.5 mg/L' rule in evaluation.",
@@ -121,6 +122,7 @@ MAX_OBSERVATIONS = 20000  # total points per request (a 40-day history is about 
 _bundles: dict[str, SiteBundle] = {}
 _cache: dict[str, tuple[float, dict]] = {}
 _wx_cache: dict[str, tuple[float, pd.DataFrame]] = {}
+_wx_fail: dict[str, tuple[float, str]] = {}
 _foundation_state: dict = {}
 
 
@@ -153,12 +155,20 @@ def live_weather(bundle: SiteBundle) -> tuple[pd.DataFrame | None, str]:
     hit = _wx_cache.get(bundle.site_id)
     if hit is not None and now - hit[0] < WEATHER_CACHE_SECONDS:
         return hit[1], "ok"
-    try:
-        W = fetch_live_weather(bundle.lat, bundle.lon)
-    except Exception as e:  # network, HTTP or schema problems must not fail a forecast
+    failed = _wx_fail.get(bundle.site_id)
+    if failed is not None and now - failed[0] < WEATHER_RETRY_SECONDS:
         if hit is not None and now - hit[0] < 6 * 3600:
             return hit[1], "stale_cache"
-        return None, f"fetch_failed: {type(e).__name__}"
+        return None, failed[1]
+    try:
+        W = fetch_live_weather(bundle.lat, bundle.lon, api_key=os.environ.get("OPEN_METEO_API_KEY") or None)
+    except Exception as e:  # network, HTTP or schema problems must not fail a forecast
+        detail = str(e)[:120]
+        _wx_fail[bundle.site_id] = (now, f"fetch_failed: {type(e).__name__}" + (f" ({detail})" if detail else ""))
+        if hit is not None and now - hit[0] < 6 * 3600:
+            return hit[1], "stale_cache"
+        return None, _wx_fail[bundle.site_id][1]
+    _wx_fail.pop(bundle.site_id, None)
     _wx_cache[bundle.site_id] = (now, W)
     return W, "ok"
 

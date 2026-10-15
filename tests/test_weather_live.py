@@ -43,7 +43,7 @@ def test_fetch_uses_session_and_raises_on_http_error():
         def raise_for_status(self):
             if self.status_code != 200:
                 raise RuntimeError("HTTP 500")
-        def json(self): return PAYLOAD
+        def json(self): return PAYLOAD if self.status_code == 200 else {"error": True, "reason": "Too many requests"}
 
     class S:
         def __init__(self, code): self.code, self.seen = code, None
@@ -54,5 +54,8 @@ def test_fetch_uses_session_and_raises_on_http_error():
     s = S(200)
     W = weather_live.fetch_live_weather(38.8, -77.2, session=s)
     assert len(W) == 3 and s.seen[1]["timezone"] == "UTC" and s.seen[1]["past_days"] == 8
-    with pytest.raises(RuntimeError):
-        weather_live.fetch_live_weather(38.8, -77.2, session=S(500))
+    with pytest.raises(weather_live.WeatherUnavailable, match="HTTP 429 Too many requests"):
+        weather_live.fetch_live_weather(38.8, -77.2, session=S(429))
+    keyed = S(200)
+    weather_live.fetch_live_weather(38.8, -77.2, session=keyed, api_key="k")
+    assert keyed.seen[0] == weather_live.URL_KEYED and keyed.seen[1]["apikey"] == "k"

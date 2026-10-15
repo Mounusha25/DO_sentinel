@@ -404,6 +404,7 @@ def _live_client(b, tmp_path, monkeypatch):
     api._bundles.clear()
     api._cache.clear()
     api._wx_cache.clear()
+    api._wx_fail.clear()
     api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
     return TestClient(api.app)
 
@@ -426,12 +427,24 @@ def test_live_weather_failure_and_success_are_reported(wx_bundle, tmp_path, monk
 
     monkeypatch.setattr(api, "fetch_live_weather", boom)
     body = c.get("/forecast/S-1").json()
-    assert body["forecast_model"] == "gbm" and body["weather_status"] == "fetch_failed: TimeoutError"
+    assert body["forecast_model"] == "gbm" and body["weather_status"].startswith("fetch_failed: TimeoutError")
     assert len(body["forecasts"]) == 5  # a weather outage never fails the request
+    # after a failure the provider is not called again for a while, so a bad day costs no latency
+    calls = []
+
+    def count(lat, lon, **k):
+        calls.append(1)
+        raise TimeoutError("again")
+
+    monkeypatch.setattr(api, "fetch_live_weather", count)
+    api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
+    assert c.get("/forecast/S-1").json()["weather_status"].startswith("fetch_failed")
+    assert calls == []
 
     W = _weather(_frame())
     monkeypatch.setattr(api, "fetch_live_weather", lambda lat, lon, **k: W)
     api._wx_cache.clear()
+    api._wx_fail.clear()
     api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
     body = c.get("/forecast/S-1").json()
     assert body["weather_status"] == "ok" and body["forecast_model"] == "gbm_weather"
