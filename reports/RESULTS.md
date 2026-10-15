@@ -15,7 +15,10 @@ Every experiment run for this project, with the numbers that support the summary
 Sections: [1 Forecasting and alerts](#1-forecasting-calibration-alerts-and-transfer-14-sites-5-years-of-history-2-year-walk-forward-test) ·
 [2 Improvements](#2-improvement-experiments-with-confidence-intervals) · [3 Weather](#3-weather-experiment) ·
 [4 Chronos-Bolt](#4-pretrained-foundation-model-chronos-bolt-zero-shot) · [5 Chronos-2](#5-chronos-2-with-covariates-zero-shot-and-the-blend) ·
-[6 Classical baseline](#6-classical-statistical-baseline) · [7 Fault detection](#7-sensor-fault-detection-synthetic-benchmark)
+[6 Classical baseline](#6-classical-statistical-baseline) · [7 Fault detection](#7-sensor-fault-detection-synthetic-benchmark) ·
+[8 Conformalized blend](#8-the-chronos-2--gradient-boosting-blend-with-walk-forward-conformal-intervals) ·
+[9 Alerting on the forecast interval](#9-alerting-on-the-forecast-interval) ·
+[10 Linear baseline](#10-a-well-specified-linear-model) · [11 Peer sensor and drift](#11-does-a-neighbouring-sensor-help-detect-drift)
 
 ## 1. Forecasting, calibration, alerts and transfer (14 sites, 5 years of history, 2-year walk-forward test)
 
@@ -129,3 +132,124 @@ USGS-approved data has had its faults removed, so detectors are scored on faults
 - Persistence-based detectors double-flag: a fault contaminates the "same time yesterday" features, so flags recur a day later (12.7 false flags/week vs 0.94 once echoes are excluded). Needs echo suppression before use.
 - Lowering the rules' flatline limit to 6 h catches every injected flatline but produces about 16 false flags/week on real data.
 - Caveats: the fault shapes are simple and mine; one random draw per site; real probe failures are messier.
+
+## 8. The Chronos-2 + gradient-boosting blend, with walk-forward conformal intervals
+
+Section 5 left two things open: no conformal calibration had been applied to the blend, and the blend was not served.
+`scripts/run_blend.py` reads the cached per-origin quantiles of section 5 and, for each of folds 2-4 (91 days each),
+widens the 80% interval by a CQR margin fitted per site and horizon **only on origins whose targets precede the
+fold**. Fold 1 has nothing to calibrate on and is excluded from every number below, so raw and calibrated rows are
+identical (about 21,700 origins per horizon). The blend is the unweighted mean of each quantile of the weather GBM
+and Chronos-2 with weather covariates; its margin is fitted on the blend's own errors.
+
+MAE skill against the best simple baseline per site (95% cluster bootstrap over site-weeks):
+
+| Horizon | GBM + weather | Chronos-2 + weather | **Blend** | Blend better than baseline |
+|---|---|---|---|---|
+| 1 h | +19.1% [+17.2, +20.9] | +12.2% [+10.5, +13.9] | **+22.1% [+20.5, +23.7]** | 14/14 sites |
+| 3 h | +21.4% [+19.7, +23.2] | +24.3% [+22.5, +26.0] | **+28.7% [+27.2, +30.2]** | 14/14 |
+| 6 h | +23.6% [+21.4, +25.8] | +26.6% [+24.8, +28.4] | **+31.3% [+29.6, +32.9]** | 14/14 |
+| 12 h | +16.0% [+13.2, +18.6] | +18.6% [+16.4, +20.7] | **+24.1% [+22.1, +26.0]** | 14/14 |
+| 24 h | +13.7% [+12.2, +15.1] | +7.8% [+5.8, +9.8] | **+16.2% [+14.6, +17.8]** | 14/14 |
+
+Coverage of the nominal 80% interval, raw and after walk-forward conformal calibration (expanding window):
+
+| Horizon | GBM raw | GBM conformal | Chronos-2 raw | Chronos-2 conformal | Blend raw | **Blend conformal** | Interval score, blend vs GBM (lower is better) |
+|---|---|---|---|---|---|---|---|
+| 1 h | 0.757 | 0.801 | 0.798 | 0.804 | 0.819 | **0.812** | 0.60 vs 0.64 |
+| 3 h | 0.736 | 0.799 | 0.755 | 0.798 | 0.790 | **0.805** | 1.09 vs 1.25 |
+| 6 h | 0.727 | 0.803 | 0.748 | 0.800 | 0.784 | **0.808** | 1.55 vs 1.80 |
+| 12 h | 0.701 | 0.796 | 0.760 | 0.805 | 0.780 | **0.809** | 1.95 vs 2.25 |
+| 24 h | 0.680 | 0.805 | 0.811 | 0.812 | 0.796 | **0.811** | 2.22 vs 2.34 |
+
+- The blend's calibrated coverage is 0.805-0.812 at every horizon, per-site coverage 0.76-0.87, and it has the best
+  interval score of the three at every horizon; it is also narrower than the calibrated GBM at 3-24 h (24 h: 1.47 vs
+  1.51 mg/L) while covering as much. Calibrating on only the previous fold ("last_fold" in `blend_intervals.csv`)
+  gives the same coverage to within 0.003.
+- Skill here is lower than the section-5 table (24 h +16.2% against +17.4%) because fold 1, the easiest, is excluded.
+- Served as of this section: `GET /forecast/{site}` answers from the weather GBM, or from this blend when the
+  pretrained model is installed and enabled (`DOSENTINEL_FOUNDATION=chronos2`), and reports which one in
+  `forecast_model`. The blend margins in the saved bundles are fitted on the cached forecasts of the calibration year.
+- Caveats: the blend weight (0.5) was not tuned, which favours rather than flatters the result; the test year was reused
+  by earlier experiments; Chronos-2 is zero-shot and its pretraining cutoff is unverified; the served weather is the
+  latest forecast, fresher than the day-old forecast used here (never staler); the blend is issued from the last whole
+  hour, because Chronos-2 was evaluated on hourly origins.
+
+## 9. Alerting on the forecast interval
+
+The probability classifier was only competitive with "DO < threshold + 0.5 mg/L" (section 1). A different use of the
+same forecasts: alert when the probability that DO is below the threshold at the worst horizon exceeds the cost-derived
+cutoff, reading that probability from the conformalized 80% interval (`blend.prob_below`: a normal around the median
+with spread from the interval). `scripts/run_alert_bound.py` scores this on the 4-hourly origins of section 8 (folds
+2-4, 14 sites, about 1,550 origins per site) with the project's episode scoring, against the naive rule, and against the
+classifier trained and calibrated as in `run_decision_direct.py` (365-day window), all on the same origins.
+
+**At parameters fixed by construction, with no sweep on the test window** (naive margin 0.5 mg/L; probability rules at
+the cutoff 1/11 that a 10:1 miss:false-alarm ratio implies; the bound rule at "q10 below threshold"):
+
+| Rule | Anticipated recall | Cluster precision | Alerts / site / week | Cost / week (10:1) | Cheaper than naive |
+|---|---|---|---|---|---|
+| naive: DO < threshold + 0.5 | 0.756 | 0.729 | 1.30 | 3.57 | n/a |
+| classifier probability | 0.889 | 0.325 | 0.68 | 1.13 | 10/14 sites |
+| interval rule, GBM (no weather) | 0.990 | 0.388 | 1.32 | 0.94 | 11/14 |
+| interval rule, GBM + weather | 0.986 | 0.413 | 1.26 | 0.90 | 12/14 |
+| interval rule, blend | 0.986 | 0.402 | 1.13 | 0.77 | 13/14 |
+| q10 of the blend below threshold | 0.988 | 0.438 | 1.10 | 0.71 | 13/14 |
+
+Mean cost saving against the naive rule, bootstrap over sites: 2.4 [0.2, 5.1] for the classifier and 2.7 [0.7, 5.2]
+for the interval rule with weather (`results/alert_bound_fixed.csv`).
+
+- **Both forecast-based rules beat the naive margin rule on cost at the 10:1 ratio**, mostly through recall (0.89-0.99
+  against 0.76): the naive rule cannot see an evening dip while DO is still high in the afternoon.
+- **The interval rule is not significantly better than the classifier.** Paired by site, the interval rule with weather
+  is cheaper at 5 sites and costlier at 9 (sign test p = 0.42; mean saving 0.23 [-0.34, 1.09]). Its mean is helped by
+  one site, USGS-01184000, where the classifier is a constant (cost 5.4 per week against 0.4-0.6).
+- **Alert volume is above the PROBLEM.md budget.** At the 10:1 cutoff the interval rule sends about 1.3 alerts per site
+  per week, against a budget of 0.5. At an exact budget the classifier is better: best anticipated recall at 0.5 alerts
+  per week is 0.75 for the classifier and 0.30-0.34 for the interval rule (0.58 for the unrounded q10 bound), with
+  parameters chosen per site on the test window for every rule, which is optimistic for all (`alert_bound_paired.csv`).
+- Decision: the API uses the classifier probability where a trained classifier exists and the interval rule only where
+  it does not (a constant classifier), since that is the one situation where the evidence is clear.
+- Caveats: one year, 4-hourly origins (alerts sampled every 4 h for every rule), the test year reused; the rule was
+  designed after seeing sweep curves, though its parameter was not tuned on them; precision is lower than the naive rule.
+
+## 10. A well-specified linear model
+
+Is the boosting's gain more than a linear model with the same inputs would give? `scripts/run_linear_baseline.py`
+fits a ridge regression per site, horizon and fold on the same features, with the same folds, training windows and
+scored origins as section 1 (8 folds, 14 sites; infinities mapped to missing, median imputation with missing
+indicators, robust scaling clipped at +-10, penalty by cross-validation).
+
+| Horizon | Ridge: skill vs best baseline | Boosting: skill | Boosting MAE below ridge | Sites where boosting is better |
+|---|---|---|---|---|
+| 1 h | +12.0% | +17.5% | 6.2% | 13/14 |
+| 3 h | +12.9% | +22.3% | 10.7% | 13/14 |
+| 6 h | +16.4% | +24.2% | 9.1% | 13/14 |
+| 12 h | +14.1% | +18.4% | 5.0% | 12/14 |
+| 24 h | +4.0% | +7.5% | 3.6% | 11/14 |
+
+The linear model carries roughly 70-75% of the boosting's gain at 6-12 h and about half at 24 h, so most of the
+skill comes from the lags, the diel cycle and the covariates, and the boosting adds a consistent 4-11% MAE on top. Not
+tuned beyond the penalty; an ARIMA with exogenous inputs refit at every origin was not tried.
+
+## 11. Does a neighbouring sensor help detect drift?
+
+A nearby station sees the same weather, so its concurrent DO should explain part of the forecast-residual noise that
+hides slow drift (section 7). Six sites form three pairs within 70 km (33, 53 and 69 km). `scripts/run_drift_peer.py`
+injects the same drift-only faults as `run_drift.py` (0.5, 1 and 2 mg/L over 3, 7 and 14 days, 5 repetitions) into one
+member of each pair and predicts its DO from its own covariates plus the other member's uncorrupted DO, with and
+without 15-day-lag anchors. Windowed residuals are thresholded at 0.67 false flags per week as before.
+
+| Detector (equal-footing thresholds) | 0.5 mg/L | 1 mg/L | 2 mg/L | Chance (zero-magnitude) |
+|---|---|---|---|---|
+| single sensor, long-lag anchors, 72 h | 13% | 11% | 19% | 7% |
+| peer, 24 h window | 13% | 10% | **28%** | 7% |
+| peer, 72 h window | 15% | 7% | 19% | 4% |
+| peer, 168 h window | 6% | 7% | 14% | 6% |
+| peer + long-lag anchors, 72 h | 13% | 11% | 18% | 4% |
+
+- **No reliable improvement.** Only a 2 mg/L drift with the 24 h peer window rises clearly above chance (28-30% against
+  7-12%), and that is the same size as the single-sensor detector's best case. Thresholds set on the calibration year
+  produce 1-16 false flags per site-week for the peer detectors (target 0.67), so the deployable version is worse.
+- With 6 target sites and about 90 injected events per magnitude, small differences are noise. Do not rely on a
+  neighbouring sensor for drift; scheduled field checks remain the control (see section 7).

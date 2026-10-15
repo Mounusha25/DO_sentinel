@@ -13,6 +13,10 @@ The narrative, with confidence intervals and caveats, is in [`reports/RESULTS.md
 | `loso_*` | `run_loso.py` | Leave-one-site-out transfer |
 | `weather_*` | `run_weather.py`, `run_weather_alerts.py` | Weather vs no weather, upper bound, ablation, alert-level test |
 | `faults_*`, `drift_*` | `run_faults.py`, `run_drift.py` | Injected-fault detection, drift detection, no-fault and zero-drift controls |
+| `blend_*` | `run_blend.py` | Skill and walk-forward conformal coverage of the Chronos-2 + boosting blend |
+| `alert_bound_*` | `run_alert_bound.py` | Interval-based alert rules against the classifier and the margin rule, at fixed parameters and at fixed budgets |
+| `linear_*` | `run_linear_baseline.py` | Ridge baseline against the boosting, per site and horizon |
+| `drift_peer_*` | `run_drift_peer.py` | Drift detection with a neighbouring sensor (`_null` is the chance control) |
 
 Three large tables are **not in git** because of their size; regenerate them with the scripts named in
 `scripts/README.md`: `chronos_rows.parquet` and `chronos2_rows.parquet` (`run_chronos*.py`, need the

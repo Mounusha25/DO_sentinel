@@ -17,19 +17,20 @@ Fourteen sites in 11 states, five years of 15-minute data, one full year of out-
 | Question | Answer |
 |---|---|
 | Do forecasts beat simple baselines? | Yes: **25% less error at 6 h, 18% at 12 h, 8% at 24 h** (14% with weather). Better at 13 to 14 of 14 sites. |
-| Are the uncertainty ranges honest? | Raw 80% intervals covered 71 to 76%. After conformal calibration, **78 to 79%**. |
+| Are the uncertainty ranges honest? | Raw 80% intervals covered 71 to 76%. After conformal calibration, **78 to 79%** (the blend below: 80.5 to 81.2% walk-forward). |
 | Is the low-oxygen probability informative? | Yes up to 6 h: it beats a "current state only" forecaster at about 80% of sites. |
-| Do forecast-based alerts beat a one-line rule? | **Only when alerts must be rare**: at 0.5 alerts per site per week they warn of 80% of events in advance against 42%. Not statistically established across 14 sites. |
+| Do forecast-based alerts beat a one-line rule? | **On cost at a 10:1 miss:false-alarm ratio, yes**: 0.9 to 1.1 against 3.6 per site-week, and 13 of 14 sites for the forecast-interval rule (recall 0.99 against 0.76, at lower precision and about 1.3 alerts per site per week, above the 0.5 budget). Between the two forecast-based rules there is no significant difference. |
 | Can sensor faults be detected? | Injected spikes 84%, stuck near zero 99%, offsets 65%, flatlines 59%. |
 | Does weather help? | +8.6% at 24 h, mostly through sunlight and temperature, not rain. It does not improve alerts. |
-| Does a pretrained foundation model help? | Blended with the boosting it cuts 6 h error by 0.03 mg/L, below the sensor's 0.1 mg/L resolution. Not part of the product. |
+| Does a pretrained foundation model help? | Blended 50/50 with the weather boosting it raises skill to **+22 / +29 / +31 / +24 / +16%** at 1 / 3 / 6 / 12 / 24 h, at 14 of 14 sites, with 80.5 to 81.2% walk-forward conformal coverage. In the API as an opt-in (needs the `foundation` extra); the default image serves the weather boosting. |
+| Is the boosting more than a linear model? | Yes, by 4 to 11% MAE at 11 to 13 of 14 sites; a ridge model keeps about 70% of its gain at 6 to 12 h. |
 
 ## What did not work
 
 These are reported, not hidden:
 
-- **Slow sensor drift cannot be detected** from one sensor. An early result of 28% detection was chance; a zero-drift control gave the same rate.
-- **Forecast-based alerts barely beat a simple rule** ("alert when DO is below 5.5 mg/L"), apart from the very-low-volume case above.
+- **Slow sensor drift cannot be detected** from one sensor, nor with a neighbouring sensor within 70 km (checked at three pairs). An early result of 28% detection was chance; a zero-drift control gave the same rate.
+- **The alert volume budget is only met by the classifier.** At 0.5 alerts per site per week (the PROBLEM.md budget) the classifier reaches 0.75 anticipated recall against 0.32 for the margin rule; the interval rule, at its cost-derived cutoff, sends about 1.3 alerts per site per week, so it is used only where a site has no trained classifier.
 - **A global model across sites, and predicting percent saturation, were worse** than per-site models.
 - **One site has no usable probability model**: no low-oxygen events in its training data.
 
@@ -42,9 +43,9 @@ Several early results looked better than they were and were corrected; see the "
 | Ingest | USGS OGC API; keeps approval status; honours `Retry-After` | `src/dosentinel/ingest/` |
 | Validate | range, flatline, spike and gap flags; flags annotate, never alter | `validate.py` |
 | Features | leakage-safe lags, rolling and calendar terms, saturation, optional weather | `features.py`, `weather.py` |
-| Models | per-site quantile gradient boosting; direct "low DO within 24 h" classifier | `models.py`, `direct.py` |
-| Calibrate | conformal intervals, Platt probability scaling | `calibration.py` |
-| Decide | cost-derived cutoff, episode-level scoring against chance, sensor-suspect suppression | `decision.py` |
+| Models | per-site quantile gradient boosting, with and without weather; optional 50/50 blend with Chronos-2; direct "low DO within 24 h" classifier | `models.py`, `blend.py`, `foundation.py`, `direct.py` |
+| Calibrate | conformal intervals (of the blend too), Platt probability scaling | `calibration.py`, `blend.py` |
+| Decide | cost-derived cutoff on the classifier probability, or on the forecast interval where there is no trained classifier; episode-level scoring against chance; sensor-suspect suppression | `decision.py`, `serving.py` |
 | Detect faults | causal detectors, synthetic-fault benchmark with a null experiment | `detect.py`, `faults.py` |
 | Serve and monitor | FastAPI in Docker, forecast log, scoring of matured forecasts, retrain rule | `serving.py`, `api.py`, `monitoring.py` |
 
@@ -55,7 +56,7 @@ Evaluation is chronological and walk-forward; preprocessing, thresholds and cali
 ```
 src/dosentinel/    library: ingest, validate, features, models, calibration, decision, faults, serving, api
 scripts/           runnable pipelines and experiments (see scripts/README.md)
-tests/             105 tests, including leakage tests for every forecaster and feature set
+tests/             129 tests, including leakage tests for every forecaster and feature set
 dashboard/         template, precomputed replay data and US map for the dashboard
 docs/              built dashboard and case study (served by GitHub Pages)
 config/            sites.yaml: the 14 sites, their selection rationale and exclusions
@@ -70,7 +71,7 @@ PROBLEM.md  MODEL_CARD.md  render.yaml  Dockerfile  requirements-lock.txt
 
 ```bash
 pip install -e ".[dev,serve]"              # Python 3.11 or newer
-pytest                                     # 105 tests
+pytest                                     # 129 tests
 ruff check src scripts tests               # lint
 
 python scripts/build_dashboard.py          # rebuild docs/index.html from dashboard/
@@ -84,7 +85,8 @@ To regenerate the data and models from scratch (hours, mostly waiting on USGS ra
 export USGS_API_KEY=...                    # free key: https://api.waterdata.usgs.gov/signup
 python scripts/pull_data.py --years 5      # raw USGS data for the sites in config/sites.yaml
 python scripts/validate_sites.py           # quality flags -> data/clean
-python scripts/train_models.py             # per-site bundles -> models/
+python scripts/train_models.py             # per-site bundles -> models/ (adds weather models and blend margins when
+                                           #   data/weather and data/chronos2_cache exist)
 python scripts/pull_weather.py             # optional: weather for the weather experiments
 python scripts/make_manifest.py --check    # verify processed data against data/MANIFEST.json
 ```
@@ -100,11 +102,13 @@ Experiment scripts and what each produces are indexed in [scripts/README.md](scr
 
 Operating notes:
 
+- **Forecast model.** A live request fetches weather from Open-Meteo (no key) and answers from the weather-aware boosting. Every response has `forecast_model`: `gbm_weather+chronos2` (when `DOSENTINEL_FOUNDATION=chronos2` and the `foundation` extra is installed), `gbm_weather`, or `gbm` when weather or the pretrained model is unavailable. Failures degrade; they never fail the request. `DOSENTINEL_WEATHER=off` disables the weather fetch. `POST /forecast/{site}` forecasts only from the series you send, with the base model.
+- **Access control (optional).** `DOSENTINEL_API_KEYS="k1,k2"` requires `X-API-Key` on everything except `/health` and the docs. `DOSENTINEL_RATE_LIMIT` caps requests per client per minute (default 60, 0 disables); behind a proxy the client is the last `X-Forwarded-For` entry.
 - **A USGS API key is required on a shared host.** Anonymous requests from a cloud address share a quota with other users of that address; the deployed service received HTTP 429 with `Retry-After` of 2 to 11 minutes until a key was set. Set `USGS_API_KEY` in the host's dashboard, never in the repository. With a key a live forecast costs five requests per site and is cached for ten minutes.
 - **The endpoint fails fast.** Series are fetched concurrently under a 35 s deadline; on failure it returns 503 with `Retry-After`, or the last good data marked `stale`. `POST /forecast/{site}` with your own series needs no USGS access.
 - **Public and unauthenticated.** Payloads are capped at 20,000 observations and CORS is limited to `DOSENTINEL_CORS`. Add authentication before using it for more than a demonstration.
 - **Free tiers sleep**, so the first request after a pause can take about a minute.
-- **Models do not update themselves.** They were trained through 2025-10 and calibrated on the following year; the retraining policy is in the model card.
+- **Models do not update themselves.** They were trained through 2025-10 and calibrated on the following year; the retraining policy is in the model card. `python scripts/retrain.py --log <forecast log>` applies the retrain rule to every site and, with `--apply`, retrains the flagged ones into `models_new/`. A scheduled job still has to pull fresh data first.
 
 ## Monitoring
 

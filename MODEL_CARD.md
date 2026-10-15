@@ -2,12 +2,16 @@
 
 ## Model details
 * **What it is:** per-site gradient-boosted quantile regression (scikit-learn
-  `HistGradientBoostingRegressor`) forecasting dissolved oxygen (DO) at 1, 3, 6, 12 and 24 hours;
-  a gradient-boosted classifier for "DO below 5 mg/L within 24 hours" with Platt scaling;
-  conformal prediction margins for 80% intervals; rule-based and forecast-error fault flags.
+  `HistGradientBoostingRegressor`) forecasting dissolved oxygen (DO) at 1, 3, 6, 12 and 24 hours,
+  with and without weather inputs; an optional 50/50 blend with the pretrained Chronos-2
+  (zero-shot, with covariates); a gradient-boosted classifier for "DO below 5 mg/L within 24
+  hours" with Platt scaling; conformal prediction margins for 80% intervals (fitted separately for
+  the blend); rule-based and forecast-error fault flags. Where a site has no trained classifier,
+  the alert reads the forecast interval instead.
 * **Inputs:** the site's own 15-minute DO, water temperature, specific conductance, turbidity
-  and discharge; calendar terms; optionally weather (rainfall that has fallen, forecast air
-  temperature, sunlight and rainfall for the next 6-24 h).
+  and discharge; calendar terms; weather (rainfall that has fallen, forecast air temperature,
+  sunlight and rainfall for the next 6-24 h) fetched live from Open-Meteo. Without weather the
+  service falls back to the base model and says so (`forecast_model`).
 * **Trained on:** USGS continuous water-quality data, 14 sites (basins 3 to 16,600 sq mi, 11 US
   states), five years to October 2026. One model per site and horizon.
 * **Version/date:** 0.1.0, 2026-10-13. Trained through 2025-10-12, calibrated on the year after.
@@ -35,19 +39,23 @@ success criteria.
 | 12 h | +18.4% |
 | 24 h | +8.4% (+14.0% with weather) |
 
-* 80% intervals: coverage 0.78-0.79 after conformal calibration (raw 0.71-0.76).
+* Weather boosting: +13.7% at 24 h and +23.6% at 6 h; the blend with Chronos-2 +16.2% at 24 h and
+  +31.3% at 6 h (folds 2-4, 14 of 14 sites better than the baseline at every horizon).
+* 80% intervals: coverage 0.78-0.79 after conformal calibration (raw 0.71-0.76); the blend, with
+  walk-forward calibration, 0.805-0.812.
 * Low-DO probability beats a "current state only" forecaster at about 80% of sites up to 6 h
   (median Brier skill 0.24-0.29); not at 24 h.
-* Alerts: competitive with, not better than, a "DO < threshold + 0.5 mg/L" rule except at very
-  low alert volume (<= 0.5 alerts/site/week).
+* Alerts: at a 10:1 miss:false-alarm cost, forecast-based rules cost 0.9-1.1 per site-week against
+  3.6 for a "DO < threshold + 0.5 mg/L" rule (recall 0.89-0.99 against 0.76, at lower precision).
+  Between the classifier and the interval rule there is no significant difference. At the 0.5
+  alerts/site/week budget only the classifier is clearly better than the margin rule.
 * Faults (synthetic): spikes 84%, stuck-low 99%, offsets 65%, flatlines 59%, drift at chance.
 
 ## Experiments not adopted
-Chronos-Bolt and Chronos-2 (pretrained, zero-shot) and a 50/50 blend with the gradient boosting
-improved MAE by 0.02-0.04 mg/L over the gradient boosting alone (6 h: 0.329 to 0.298 mg/L,
-CI excluding zero), below the sensor's 0.1 mg/L resolution; judged not worth the added
-dependencies. A global model across sites and a saturation-fraction target were no better than
-per-site models.
+A global model across sites and a saturation-fraction target were no better than per-site
+models. Slow sensor drift stays undetectable from one sensor, and a neighbouring sensor within
+70 km did not change that. The Chronos-2 blend is implemented but opt-in, because it needs the
+`foundation` extra (torch, a 119M-parameter model) that the default image does not carry.
 
 ## Limitations and caveats
 * **Single evaluation period.** The final year was reused across experiments; the only fully
@@ -59,7 +67,9 @@ per-site models.
   gain is mildly optimistic.
 * **Low-DO episodes are rare** at several sites (as few as 7 in two years at one site), so
   per-site alert metrics are noisy.
-* **A site with no training events has no usable probability model.** At USGS-01184000 (3% event rate) the low-DO classifier saw no events in training and is a constant, so its probability does not respond to conditions; use a threshold rule there.
+* **A site with no training events has no usable probability model.** At USGS-01184000 (3% event rate) the low-DO classifier saw no events in training and is a constant, so its probability does not respond to conditions; the alert reads the forecast interval there (`alert_rule: forecast_interval`).
+* **Blend margins depend on cached forecasts.** They are fitted on the calibration year's Chronos-2 forecasts (`run_chronos2.py`); after a retrain without those, the bundle serves the weather boosting only.
+* **Weather at serving time is the latest forecast,** fresher than the day-old forecast used in training. A bad or missing weather response degrades to the base model.
 * **Seasonal.** Event rates differ by season; probability scaling needs a year of calibration data.
 
 ## Ethical and operational considerations

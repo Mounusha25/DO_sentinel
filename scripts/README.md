@@ -29,12 +29,17 @@ Install the package first (`pip install -e ".[dev,serve]"`); scripts marked *exp
 | `run_faults.py`, `run_drift.py` | How well are injected faults and drift detected, against chance? | `results/faults_*.csv`, `results/drift_*.csv` |
 | `run_stats_baseline.py` *(experiments)* | How does Holt-Winters compare? | `results/stats_baseline_rows.parquet` |
 | `run_chronos.py`, `run_chronos2.py` *(foundation)* | Does a pretrained model help, zero-shot? | `results/chronos*_rows.parquet` |
+| `run_blend.py` | Is the Chronos-2 + boosting blend better and calibrated, walk-forward? | `results/blend_*.csv` |
+| `run_alert_bound.py` | Does alerting on the forecast interval beat the classifier or the margin rule? | `results/alert_bound_*.csv` |
+| `run_linear_baseline.py` | Does a ridge model with the same inputs match the boosting? | `results/linear_*.csv` |
+| `run_drift_peer.py` | Does a neighbouring sensor help detect drift? | `results/drift_peer_*.csv` |
 
 ## Product and reports
 
 | Script | What it does |
 |---|---|
-| `train_models.py` | Trains and saves one serving bundle per site into `models/` |
+| `train_models.py` | Trains and saves one serving bundle per site into `models/` (weather models and blend margins when the weather tables and Chronos-2 cache exist) |
+| `retrain.py` | Applies the retrain rule to each site from the forecast log; `--apply` retrains flagged sites into `models_new/` |
 | `build_dashboard_data.py` | Precomputes replay forecasts and evidence tables into `dashboard/data.json` (needs `models/` and the result parquet files) |
 | `build_dashboard.py` | Template + data + map into `docs/index.html` |
 | `make_case_study.py` *(experiments)* | Builds `docs/case-study.html` from the saved results |
