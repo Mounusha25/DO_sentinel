@@ -292,6 +292,15 @@ function liveObs(L, ms){
 }
 const $ = id => document.getElementById(id);
 const cutoff = () => 1/(1+st.ratio);
+const MODEL_NAME = {"gbm_weather+chronos2":"Boosting + weather + pretrained model", "gbm_weather":"Boosting with weather", "gbm":"Boosting, no weather"};
+// which model produced these numbers, and (live) why weather was not used; replay is always the weather model
+function modelLabel(r){
+  if(st.mode!=="live") return {t:"Boosting with weather (archived forecast)", note:""};
+  const name = MODEL_NAME[r.model] || "Boosting";
+  const why = r.model==="gbm" && r.wstatus && r.wstatus!=="ok" ? r.wstatus : "";
+  const code = /HTTP \d+/.exec(why);
+  return {t:name, note:why ? "weather unavailable: "+(code ? code[0] : why.slice(0,40)) : ""};
+}
 const pct = x => x==null ? "n/a" : Math.round(x*100)+"%";
 const f1 = x => x==null ? "n/a" : x.toFixed(1);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -460,6 +469,7 @@ function renderDetail(){
         <div class="outcome" style="background:none"><div class="section-t">Recommended action</div><b>${ACTION[k]}</b></div>
         <dl class="kv">
           <dt>DO at issue time</dt><dd>${f1(r.do)} mg/L</dd>
+          <dt>Forecast model</dt><dd title="${modelLabel(r).note}">${modelLabel(r).t}${modelLabel(r).note ? ` <small style="color:var(--ink-2)">(${modelLabel(r).note.replace(/^weather unavailable: /,"no weather: ")})</small>` : ""}</dd>
           ${r.f && r.f.length ? `<dt>Median at +6 h</dt><dd>${f1(r.f[2][1])} mg/L</dd><dt>Median at +24 h</dt><dd>${f1(r.f[4][1])} mg/L</dd>
           <dt>80% range at +24 h</dt><dd>${f1(r.f[4][0])} to ${f1(r.f[4][2])}</dd>` : ""}
           <dt>Readings in last 24 h</dt><dd>${pct(r.obs)}</dd>
@@ -670,7 +680,7 @@ function toRow(rep){
   let fl = 0; D.flag_keys.forEach((k,b)=>{ if(rep.fault_flags && rep.fault_flags[k]) fl |= (1<<b); });
   // the probability that drives the action: the classifier's, or the forecast interval's where a site has none
   const p = rep.alert_rule==="forecast_interval" ? rep.p_low_do_forecast_interval : rep.p_low_do_within_24h;
-  return {p, do:rep.latest_do_mgL, obs:rep.observed_fraction_last_24h, fl,
+  return {p, model:rep.forecast_model, wstatus:rep.weather_status, rule:rep.alert_rule, do:rep.latest_do_mgL, obs:rep.observed_fraction_last_24h, fl,
           f:(rep.forecasts||[]).map(x=>[x.low_mgL, x.median_mgL, x.high_mgL])};
 }
 function renderAll(){ renderControls(); renderKPIs(); renderMap(); renderQueue(); renderDetail(); }
