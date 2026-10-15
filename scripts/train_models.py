@@ -19,6 +19,7 @@ import yaml
 
 from dosentinel.features import load_site_frame
 from dosentinel.serving import train_bundle
+from dosentinel.tracking import track
 from dosentinel.weather import load_weather
 
 
@@ -49,6 +50,14 @@ def main() -> None:
         b.lat, b.lon = coords.get(s["id"], {}).get("lat"), coords.get(s["id"], {}).get("lon")
         path = out / f"{s['id']}.joblib"
         joblib.dump(b, path, compress=3)
+        m = {f"reference_mae_{h}h": v for h, v in b.metrics.get("reference_mae_h", {}).items()}
+        m.update({f"wx_reference_mae_{h}h": v for h, v in b.metrics.get("wx_reference_mae_h", {}).items()})
+        m.update({f"blend_reference_mae_{h}h": v for h, v in b.metrics.get("blend_reference_mae_h", {}).items()})
+        m.update({"cal_events": b.cal_events, "weather_models": len(b.wx_quantile_models),
+                  "blend_margins": len(b.blend_margin), "probability_scaled": float(b.platt is not None)})
+        track("training", params={"site": s["id"], "role": s["role"], "cal_days": args.cal_days, "stride": args.stride,
+                                  "trained_through": b.trained_through.date(), "classifier": type(b.clf).__name__},
+              metrics=m, run_name=s["id"])
         print(f"{s['id']} ({s['role']}): trained through {b.trained_through:%Y-%m-%d}, "
               f"{b.cal_events} calibration events, probability scaled={b.platt is not None}, "
               f"weather models={len(b.wx_quantile_models)}/5, blend margins={len(b.blend_margin)}/5, "

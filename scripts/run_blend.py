@@ -23,6 +23,7 @@ sys.path.insert(0, "src")
 from dosentinel.baselines import BASELINES as _BASELINES  # noqa: E402
 from dosentinel.blend import apply_margin, blend_quantiles, conformal_margin, interval_score  # noqa: E402
 from dosentinel.stats import skill_ci  # noqa: E402
+from dosentinel.tracking import track  # noqa: E402
 
 BASELINES = list(_BASELINES)
 MEMBERS = {"gbm_wx": "gbmwx", "chronos2_wx": "wx", "gbm_nowx": "gbm", "chronos2_wq": "wq"}
@@ -113,6 +114,15 @@ def main() -> None:
     pd.set_option("display.width", 200)
     print(sk.round(3).to_string(index=False))
     print(iv[iv.model.isin(["gbm_wx", "chronos2_wx", "blend_wx"])].round(3).to_string(index=False))
+    metrics = {}
+    for _, r in sk[sk.model.isin(["gbm_wx", "chronos2_wx", "blend_wx"])].iterrows():
+        metrics[f"skill_{r.model}_{int(r.horizon_h)}h"] = r.skill
+    for _, r in iv[(iv.model == "blend_wx") & (iv.interval == "expanding")].iterrows():
+        metrics[f"coverage_blend_{int(r.horizon_h)}h"] = r.coverage
+        metrics[f"interval_score_blend_{int(r.horizon_h)}h"] = r.interval_score
+    track("blend-conformal", params={"alpha": ALPHA, "blend_weight": 0.5, "calibration": "expanding, earlier folds only",
+                                     "rows": args.rows}, metrics=metrics,
+          artifacts=[out / "blend_skill.csv", out / "blend_intervals.csv"], run_name="run_blend")
 
 
 if __name__ == "__main__":

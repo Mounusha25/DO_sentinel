@@ -43,6 +43,7 @@ from dosentinel.direct import H, site_probability  # noqa: E402
 from dosentinel.evaluate import walk_forward_folds  # noqa: E402
 from dosentinel.features import load_site_frame  # noqa: E402
 from dosentinel.stats import mean_diff_ci, sign_test_p  # noqa: E402
+from dosentinel.tracking import track  # noqa: E402
 
 HORIZONS = (1, 3, 6, 12, 24)
 MARGINS = np.round(np.arange(-1.0, 3.01, 0.25), 2)
@@ -179,6 +180,13 @@ def main() -> None:
     print(p.round(3).to_string(index=False))
     print()
     print(tab.round(3).to_string())
+    metrics = {}
+    for rule, r in tab.iterrows():
+        metrics.update({f"cost_per_week_{rule}": r.cost_per_week, f"recall_{rule}": r.recall,
+                        f"alerts_per_week_{rule}": r.alerts_per_week})
+    track("alerting", params={"threshold_mgL": thr, "cost_ratio": 10, "origins": "4-hourly, folds 2-4",
+                              "parameters": "fixed by construction, no test sweep"}, metrics=metrics,
+          artifacts=[out / "alert_bound_fixed.csv", out / "alert_bound_paired.csv"], run_name="run_alert_bound")
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ from sklearn.preprocessing import FunctionTransformer, RobustScaler
 from dosentinel.baselines import BASELINES, HORIZONS_H
 from dosentinel.evaluate import evaluation_table, skill_table, storm_state, walk_forward_folds
 from dosentinel.features import base_features, horizon_features, load_site_frame, train_origin_mask
+from dosentinel.tracking import track
 
 
 def _inf_to_nan(a):
@@ -96,6 +97,13 @@ def main() -> None:
                                    sites_gbm_better=("gbm_vs_linear", lambda x: int((x > 0).sum())),
                                    n_sites=("gbm_vs_linear", "size"))
     print(s.round(3).to_string())
+    metrics = {}
+    for h, r in s.iterrows():
+        metrics.update({f"linear_skill_{h}h": r.linear_skill, f"gbm_skill_{h}h": r.gbm_skill,
+                        f"gbm_vs_linear_{h}h": r.gbm_vs_linear, f"sites_gbm_better_{h}h": r.sites_gbm_better})
+    track("baselines", params={"model": "ridge (RobustScaler, clip +-10, RidgeCV)", "stride": args.stride,
+                               "folds": args.folds}, metrics=metrics,
+          artifacts=[out / "linear_overall.csv", out / "linear_vs_gbm.csv"], run_name="run_linear_baseline")
 
 
 if __name__ == "__main__":

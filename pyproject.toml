@@ -22,6 +22,8 @@ dev = ["pytest>=8", "ruff>=0.5", "httpx>=0.27"]
 serve = ["fastapi>=0.110", "uvicorn>=0.29", "joblib>=1.3"]
 # plots, the statistical baseline and the report generators
 experiments = ["statsmodels>=0.14", "matplotlib>=3.8", "joblib>=1.3"]
+# experiment tracking (local MLflow store) used by the scripts and the monitoring job
+tracking = ["mlflow>=2.14"]
 # pretrained time-series models (Chronos-Bolt, Chronos-2); run in a separate environment
 foundation = ["torch>=2.2", "transformers>=4.40", "accelerate>=0.30", "chronos-forecasting>=2.0", "joblib>=1.3"]
 

@@ -16,3 +16,8 @@ logs/
 results_prev/
 results/*.parquet
 dashboard/_artifact.html
+
+# experiment tracking store (local MLflow)
+mlruns/
+mlartifacts/
+mlflow.db
