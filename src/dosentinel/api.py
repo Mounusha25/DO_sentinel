@@ -8,6 +8,7 @@ POST /forecast/{site_id}   forecasts from series you supply (no network needed)
 from __future__ import annotations
 
 import hmac
+import json
 import os
 import threading
 import time
@@ -23,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
+from .drift import input_drift, log_drift
 from .features import PARAM_COLS
 from .ingest import UsgsClient
 from .monitoring import (
@@ -329,6 +331,38 @@ def forecast_live(site_id: str, cost_ratio: float = Query(10.0, gt=0, le=1000)) 
 def forecast_from_data(site_id: str, payload: SeriesPayload) -> dict:
     bundle = get_bundle(site_id)
     return _respond(bundle, _frame_from_payload(payload.series), payload.cost_ratio)
+
+
+_drift_reference: dict = {}
+
+
+def drift_reference() -> dict:
+    """models/drift_reference.json (built by scripts/build_drift_reference.py), loaded once."""
+    if not _drift_reference:
+        path = Path(os.environ.get("DOSENTINEL_DRIFT_REFERENCE", str(models_dir() / "drift_reference.json")))
+        if path.exists():
+            _drift_reference.update(json.loads(path.read_text()))
+    return _drift_reference
+
+
+@app.get("/drift/{site_id}")
+def drift(site_id: str, window_days: int = Query(30, ge=7, le=35)) -> dict:
+    """Input drift of the latest data against the training period (same calendar month, judged
+    against the site's own year-to-year variability) and drift in the logged outputs."""
+    get_bundle(site_id)
+    ref = drift_reference().get(site_id)
+    if ref is None:
+        raise HTTPException(409, "no drift reference for this site; run scripts/build_drift_reference.py")
+    hit = _cache.get(site_id)
+    if hit is None:
+        forecast_live(site_id)
+        hit = _cache[site_id]
+    out = {"site_id": site_id, "as_of": hit[1].index[-1].isoformat(),
+           "input": input_drift(hit[1], ref["features"], window_days)}
+    path = log_path()
+    out["output"] = log_drift(read_log(path), site_id) if path is not None else {"status": "unknown",
+                                                                                 "reason": "forecast logging is off"}
+    return out
 
 
 @app.get("/monitor/{site_id}")

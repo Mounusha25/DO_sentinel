@@ -454,3 +454,26 @@ def test_live_weather_failure_and_success_are_reported(wx_bundle, tmp_path, monk
 def test_forecast_notes_when_weather_models_are_absent(bundle):
     out = forecast(bundle, _frame().iloc[-96 * 30:], weather=_weather(_frame()))
     assert out["forecast_model"] == "gbm" and "weather model not used" in out["forecast_model_note"]
+
+
+def test_drift_endpoint_reports_input_and_output_drift(bundle, tmp_path, monkeypatch):
+    from dosentinel import drift as drift_mod
+    years = []
+    for k, y in enumerate((2023, 2024, 2025)):
+        f = _frame(seed=20 + k)
+        f.index = f.index - pd.DateOffset(years=2026 - y)
+        years.append(f)
+    ref = {"S-1": {"trained_through": "2025-12-31", "rows": 0, "features": drift_mod.build_reference(pd.concat(years))}}
+    (tmp_path / "ref.json").write_text(__import__("json").dumps(ref))
+    monkeypatch.setenv("DOSENTINEL_DRIFT_REFERENCE", str(tmp_path / "ref.json"))
+    api._drift_reference.clear()
+    c = _live_client(bundle, tmp_path, monkeypatch)
+    r = c.get("/drift/S-1")
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body["input"]) >= {"do", "temp", "worst", "alert", "n_major"} and body["output"]["status"] == "unknown"
+    assert c.get("/drift/NOPE").status_code == 404
+    api._drift_reference.clear()
+    api._drift_reference["other"] = {}
+    assert c.get("/drift/S-1").status_code == 409  # no reference for this site
+    api._drift_reference.clear()
