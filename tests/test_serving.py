@@ -392,3 +392,52 @@ def test_rate_limit_is_per_client_and_window_expires():
     assert api.rate_check("b", 2, now=2.0) is None  # another client is unaffected
     assert api.rate_check("a", 2, now=61.5) is None  # the window has passed
     assert api.rate_check("a", 0, now=0.0) is None  # 0 disables
+
+
+# ---- live weather status is never silent -------------------------------------------------------
+def _live_client(b, tmp_path, monkeypatch):
+    joblib.dump(b, tmp_path / "S-1.joblib")
+    monkeypatch.setenv("DOSENTINEL_MODELS", str(tmp_path))
+    monkeypatch.delenv("DOSENTINEL_API_KEYS", raising=False)
+    monkeypatch.delenv("DOSENTINEL_WEATHER", raising=False)
+    monkeypatch.setenv("DOSENTINEL_RATE_LIMIT", "0")
+    api._bundles.clear()
+    api._cache.clear()
+    api._wx_cache.clear()
+    api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
+    return TestClient(api.app)
+
+
+def test_live_response_says_why_weather_was_not_used(bundle, tmp_path, monkeypatch):
+    c = _live_client(bundle, tmp_path, monkeypatch)  # a bundle without weather models
+    body = c.get("/forecast/S-1").json()
+    assert body["forecast_model"] == "gbm" and body["weather_status"] == "bundle_has_no_weather_models"
+    monkeypatch.setenv("DOSENTINEL_WEATHER", "off")
+    api._bundles.clear()
+    assert c.get("/forecast/S-1").json()["weather_status"] == "disabled"
+
+
+def test_live_weather_failure_and_success_are_reported(wx_bundle, tmp_path, monkeypatch):
+    wx_bundle.lat, wx_bundle.lon = 38.8, -77.2
+    c = _live_client(wx_bundle, tmp_path, monkeypatch)
+
+    def boom(lat, lon, **k):
+        raise TimeoutError("open-meteo")
+
+    monkeypatch.setattr(api, "fetch_live_weather", boom)
+    body = c.get("/forecast/S-1").json()
+    assert body["forecast_model"] == "gbm" and body["weather_status"] == "fetch_failed: TimeoutError"
+    assert len(body["forecasts"]) == 5  # a weather outage never fails the request
+
+    W = _weather(_frame())
+    monkeypatch.setattr(api, "fetch_live_weather", lambda lat, lon, **k: W)
+    api._wx_cache.clear()
+    api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
+    body = c.get("/forecast/S-1").json()
+    assert body["weather_status"] == "ok" and body["forecast_model"] == "gbm_weather"
+    assert body["forecast_issued_from"]
+
+
+def test_forecast_notes_when_weather_models_are_absent(bundle):
+    out = forecast(bundle, _frame().iloc[-96 * 30:], weather=_weather(_frame()))
+    assert out["forecast_model"] == "gbm" and "weather model not used" in out["forecast_model_note"]

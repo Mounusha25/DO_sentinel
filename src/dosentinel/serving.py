@@ -313,6 +313,9 @@ def forecast(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float = 10.0,
         if wfc:
             fc, out["forecast_model"] = wfc, name
             out["forecast_issued_from"] = frame.index[-1].floor("h").isoformat()
+        elif "forecast_model_note" not in out:
+            out["forecast_model_note"] = ("weather model not used: no weather models in the bundle, or the DO value at "
+                                          "the last whole hour is missing")
     out["forecasts"] = fc
 
     # ---- probability of a low-DO episode in the next 24 h, and the action

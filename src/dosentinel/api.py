@@ -137,20 +137,30 @@ def get_bundle(site_id: str) -> SiteBundle:
     return _bundles[site_id]
 
 
-def live_weather(bundle: SiteBundle) -> pd.DataFrame | None:
-    """Recent and forecast weather for the site, cached; None when unavailable (callers fall back)."""
-    if not bundle.wx_quantile_models or bundle.lat is None or os.environ.get("DOSENTINEL_WEATHER", "on") == "off":
-        return None
+def live_weather(bundle: SiteBundle) -> tuple[pd.DataFrame | None, str]:
+    """Recent and forecast weather for the site, cached, with a status that says why it is absent.
+
+    The status is returned in every live response (`weather_status`), so a silent fallback to the
+    base model can be diagnosed from outside: "ok", "disabled", "bundle_has_no_weather_models",
+    "bundle_has_no_coordinates", "stale_cache" or "fetch_failed: <error type>"."""
+    if os.environ.get("DOSENTINEL_WEATHER", "on") == "off":
+        return None, "disabled"
+    if not bundle.wx_quantile_models:
+        return None, "bundle_has_no_weather_models"
+    if bundle.lat is None or bundle.lon is None:
+        return None, "bundle_has_no_coordinates"
     now = time.time()
     hit = _wx_cache.get(bundle.site_id)
     if hit is not None and now - hit[0] < WEATHER_CACHE_SECONDS:
-        return hit[1]
+        return hit[1], "ok"
     try:
         W = fetch_live_weather(bundle.lat, bundle.lon)
-    except Exception:  # network, HTTP or schema problems must not fail a forecast
-        return hit[1] if hit is not None and now - hit[0] < 6 * 3600 else None
+    except Exception as e:  # network, HTTP or schema problems must not fail a forecast
+        if hit is not None and now - hit[0] < 6 * 3600:
+            return hit[1], "stale_cache"
+        return None, f"fetch_failed: {type(e).__name__}"
     _wx_cache[bundle.site_id] = (now, W)
-    return W
+    return W, "ok"
 
 
 def foundation_model():
@@ -206,12 +216,13 @@ def log_path() -> Path | None:
 
 def _respond(bundle: SiteBundle, frame: pd.DataFrame, cost_ratio: float, live: bool = False) -> dict:
     # weather is fetched only for live requests; a POST forecasts from exactly the series supplied
-    weather = live_weather(bundle) if live else None
+    weather, weather_status = live_weather(bundle) if live else (None, "not_requested")
     try:
         res = forecast(bundle, frame, cost_ratio, weather=weather,
                        foundation=foundation_model() if weather is not None else None)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
+    res["weather_status"] = weather_status
     res["input_health"] = input_health(frame)
     hv = frame["do"][frame.index.minute == 0].iloc[-72:]  # last three days, hourly, for charts
     res["history"] = {"start": hv.index[0].isoformat() if len(hv) else None, "step_hours": 1,
