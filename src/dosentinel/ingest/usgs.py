@@ -42,7 +42,8 @@ class UsgsClient:
     ) -> None:
         # An API key is optional but raises rate limits (check USGS docs for the
         # current header/param name; X-Api-Key is what we send here).
-        self.api_key = api_key or os.environ.get("USGS_API_KEY")
+        # a key pasted into a secrets form often carries a trailing newline, which is an illegal header value
+        self.api_key = (api_key or os.environ.get("USGS_API_KEY") or "").strip() or None
         self.session = session or requests.Session()
         self.max_retries = max_retries
         self.backoff = backoff

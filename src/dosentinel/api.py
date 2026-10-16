@@ -188,7 +188,7 @@ def refresh_weather(bundle: SiteBundle) -> str:
         status = _wx_batch_fail[1]
     else:
         try:
-            frames = fetch_many(coords, api_key=os.environ.get("OPEN_METEO_API_KEY") or None)
+            frames = fetch_many(coords, api_key=os.environ.get("OPEN_METEO_API_KEY", "").strip() or None)
             for sid, W in frames.items():
                 _wx_cache[sid] = (now, W)
                 _wx_status[sid] = "ok"

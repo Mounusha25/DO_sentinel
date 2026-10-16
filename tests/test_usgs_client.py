@@ -87,3 +87,13 @@ def test_api_key_sent_as_header(monkeypatch):
     UsgsClient(api_key="k", session=sess).fetch_continuous("USGS-1", "00300", "a", "b")
     assert sess.calls[0]["headers"]["X-Api-Key"] == "k"
     assert sess.calls[0]["params"]["time"] == "a/b"
+
+
+def test_key_with_a_trailing_newline_or_spaces_is_cleaned(monkeypatch):
+    # a secret pasted into a form often ends in a newline, which is an illegal HTTP header value
+    monkeypatch.setenv("USGS_API_KEY", "  abc123\n")
+    client, sess = _client([_Resp(payload={"features": []})])
+    list(client.iter_features("continuous", {}))
+    assert sess.calls[0]["headers"]["X-Api-Key"] == "abc123"
+    monkeypatch.setenv("USGS_API_KEY", "\n")
+    assert UsgsClient(session=_Session([])).api_key is None  # a blank secret means "no key", not a bad header
