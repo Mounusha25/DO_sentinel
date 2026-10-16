@@ -21,6 +21,7 @@ sys.path.insert(0, "src")
 from dosentinel import api  # noqa: E402
 from dosentinel.monitoring_job import run_cycle  # noqa: E402
 from dosentinel.tracking import track  # noqa: E402
+from dosentinel.weather_live import to_snapshot  # noqa: E402
 
 
 def main() -> None:
@@ -41,6 +42,12 @@ def main() -> None:
     ref = json.loads(Path(args.reference).read_text()) if Path(args.reference).exists() else None
     rep = run_cycle(bundles, api._fetch_live_frame, Path(args.state), reference=ref,
                     weather=api.live_weather, issue=not args.no_issue)
+    # publish the weather this cycle fetched, so the API can fall back to it when its own address is
+    # throttled; an unsuccessful fetch leaves the previous snapshot in place (the API ignores old ones)
+    fresh = {sid: W for sid, (_, W) in api._wx_cache.items() if api._wx_status.get(sid) == "ok"}
+    if fresh:
+        (Path(args.state) / "weather_snapshot.json").write_text(json.dumps(to_snapshot(fresh), separators=(",", ":")))
+        print(f"weather snapshot written for {len(fresh)} sites")
     print((Path(args.state) / "report.md").read_text())
     track("monitoring", params={"sites": len(ids), "issued": not args.no_issue},
           metrics={"sites_failed": len(rep["sites_failed"]), "retrain_recommended": len(rep["retrain_recommended"]),

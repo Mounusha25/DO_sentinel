@@ -39,6 +39,10 @@ def main() -> None:
     out.mkdir(exist_ok=True)
     cfg = yaml.safe_load(Path(args.config).read_text())
     coords = json.loads(Path(args.coords).read_text()) if args.coords and Path(args.coords).exists() else {}
+    # one small file lets the API request weather for every site in a single call
+    (out / "site_coordinates.json").write_text(json.dumps(
+        {s["id"]: {"lat": coords[s["id"]]["lat"], "lon": coords[s["id"]]["lon"]}
+         for s in cfg["sites"] if s["id"] in coords}, indent=0))
     for s in cfg["sites"]:
         t0 = time.time()
         frame = load_site_frame(s["id"], args.clean)

@@ -404,7 +404,11 @@ def _live_client(b, tmp_path, monkeypatch):
     api._bundles.clear()
     api._cache.clear()
     api._wx_cache.clear()
-    api._wx_fail.clear()
+    api._wx_status.clear()
+    api._wx_batch_fail.clear()
+    for k in ("DOSENTINEL_WEATHER_SNAPSHOT_URL", "DOSENTINEL_WEATHER_SNAPSHOT_FILE", "OPEN_METEO_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("DOSENTINEL_COORDS", str(tmp_path / "none.json"))
     api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
     return TestClient(api.app)
 
@@ -422,33 +426,83 @@ def test_live_weather_failure_and_success_are_reported(wx_bundle, tmp_path, monk
     wx_bundle.lat, wx_bundle.lon = 38.8, -77.2
     c = _live_client(wx_bundle, tmp_path, monkeypatch)
 
-    def boom(lat, lon, **k):
+    def boom(coords, **k):
         raise TimeoutError("open-meteo")
 
-    monkeypatch.setattr(api, "fetch_live_weather", boom)
+    monkeypatch.setattr(api, "fetch_many", boom)
     body = c.get("/forecast/S-1").json()
     assert body["forecast_model"] == "gbm" and body["weather_status"].startswith("fetch_failed: TimeoutError")
     assert len(body["forecasts"]) == 5  # a weather outage never fails the request
     # after a failure the provider is not called again for a while, so a bad day costs no latency
     calls = []
 
-    def count(lat, lon, **k):
+    def count(coords, **k):
         calls.append(1)
         raise TimeoutError("again")
 
-    monkeypatch.setattr(api, "fetch_live_weather", count)
+    monkeypatch.setattr(api, "fetch_many", count)
     api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
     assert c.get("/forecast/S-1").json()["weather_status"].startswith("fetch_failed")
     assert calls == []
 
     W = _weather(_frame())
-    monkeypatch.setattr(api, "fetch_live_weather", lambda lat, lon, **k: W)
+    monkeypatch.setattr(api, "fetch_many", lambda coords, **k: {sid: W for sid in coords})
     api._wx_cache.clear()
-    api._wx_fail.clear()
+    api._wx_batch_fail.clear()
     api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
     body = c.get("/forecast/S-1").json()
     assert body["weather_status"] == "ok" and body["forecast_model"] == "gbm_weather"
     assert body["forecast_issued_from"]
+
+
+def test_one_request_covers_every_site(wx_bundle, tmp_path, monkeypatch):
+    wx_bundle.lat, wx_bundle.lon = 38.8, -77.2
+    _live_client(wx_bundle, tmp_path, monkeypatch)
+    coords = {"S-1": (38.8, -77.2), "S-2": (39.0, -78.0), "S-3": (40.0, -79.0)}
+    (tmp_path / "coords.json").write_text(__import__("json").dumps({k: {"lat": v[0], "lon": v[1]} for k, v in coords.items()}))
+    monkeypatch.setenv("DOSENTINEL_COORDS", str(tmp_path / "coords.json"))
+    seen = []
+    W = _weather(_frame())
+
+    def many(c, **k):
+        seen.append(sorted(c))
+        return {sid: W for sid in c}
+
+    monkeypatch.setattr(api, "fetch_many", many)
+    import copy
+    other = copy.copy(wx_bundle)
+    other.site_id = "S-2"
+    api.live_weather(wx_bundle)
+    api.live_weather(other)  # a second site is served from the same request
+    assert seen == [["S-1", "S-2", "S-3"]]
+    assert api._wx_status["S-2"] == "ok"
+
+
+def test_published_snapshot_is_the_fallback_and_old_ones_are_ignored(wx_bundle, tmp_path, monkeypatch):
+    from dosentinel.weather_live import to_snapshot
+    wx_bundle.lat, wx_bundle.lon = 38.8, -77.2
+    c = _live_client(wx_bundle, tmp_path, monkeypatch)
+    W = _weather(_frame())
+
+    def down(coords, **k):
+        raise TimeoutError("HTTP 429 Daily API request limit exceeded")
+
+    monkeypatch.setattr(api, "fetch_many", down)
+    snap_path = tmp_path / "snap.json"
+    fresh = to_snapshot({"S-1": W}, pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=2))
+    snap_path.write_text(__import__("json").dumps(fresh))
+    monkeypatch.setenv("DOSENTINEL_WEATHER_SNAPSHOT_FILE", str(snap_path))
+    body = c.get("/forecast/S-1").json()
+    assert body["weather_status"].startswith("snapshot (2.0 h old)") and body["forecast_model"] == "gbm_weather"
+
+    api._wx_cache.clear()
+    api._wx_status.clear()
+    api._wx_batch_fail.clear()
+    api._cache["S-1"] = (__import__("time").time(), _frame().iloc[-96 * 30:])
+    old = to_snapshot({"S-1": W}, pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=30))
+    snap_path.write_text(__import__("json").dumps(old))
+    body = c.get("/forecast/S-1").json()
+    assert body["forecast_model"] == "gbm" and body["weather_status"].startswith("fetch_failed")
 
 
 def test_forecast_notes_when_weather_models_are_absent(bundle):

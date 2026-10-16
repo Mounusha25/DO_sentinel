@@ -13,5 +13,9 @@ services:
         sync: false
       - key: DOSENTINEL_RATE_LIMIT    # requests per client per minute; 0 disables
         value: "60"
+      - key: DOSENTINEL_WEATHER_SNAPSHOT_URL   # weather published by the scheduled job; used when the host's own fetch is throttled
+        value: https://raw.githubusercontent.com/Mounusha25/DO_sentinel/monitoring/weather_snapshot.json
+      - key: OPEN_METEO_API_KEY       # optional paid key; removes the shared-address limit entirely
+        sync: false
       - key: USGS_API_KEY             # optional; raises the USGS rate limit. Set in the dashboard, never commit it.
         sync: false

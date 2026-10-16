@@ -41,6 +41,51 @@ class WeatherUnavailable(Exception):
     """The weather provider answered with an error; the message carries the HTTP status and reason."""
 
 
+def fetch_many(coords: dict[str, tuple[float, float]], past_days: int = 8, forecast_days: int = 2,
+               timeout: float = 8.0, session: requests.Session | None = None,
+               api_key: str | None = None) -> dict[str, pd.DataFrame]:
+    """One request for several sites (Open-Meteo accepts comma-separated coordinates and answers with
+    one block per location, in order). Cloud hosts share an address, so one call per refresh instead of
+    one per site is the cheapest way to stay under a per-address daily limit."""
+    if not coords:
+        return {}
+    ids = list(coords)
+    params = {"latitude": ",".join(f"{coords[i][0]:.4f}" for i in ids),
+              "longitude": ",".join(f"{coords[i][1]:.4f}" for i in ids),
+              "hourly": ",".join(VARS), "timezone": "UTC", "past_days": past_days, "forecast_days": forecast_days}
+    if api_key:
+        params["apikey"] = api_key
+    r = (session or requests).get(URL_KEYED if api_key else URL, params=params, timeout=timeout)
+    if getattr(r, "status_code", 200) != 200:
+        try:
+            reason = str(r.json().get("reason", ""))[:100]
+        except Exception:
+            reason = ""
+        raise WeatherUnavailable(f"HTTP {r.status_code} {reason}".strip())
+    body = r.json()
+    blocks = body if isinstance(body, list) else [body]
+    if len(blocks) != len(ids):
+        raise ValueError(f"expected {len(ids)} locations, got {len(blocks)}")
+    return {sid: parse_hourly(b) for sid, b in zip(ids, blocks)}
+
+
+def to_snapshot(frames: dict[str, pd.DataFrame], generated: pd.Timestamp | None = None) -> dict:
+    """JSON-serialisable snapshot of per-site hourly weather, for publishing between processes."""
+    gen = pd.Timestamp.now(tz="UTC") if generated is None else pd.Timestamp(generated)
+    sites = {}
+    for sid, f in frames.items():
+        sites[sid] = {"time": [t.strftime("%Y-%m-%dT%H:%M") for t in f.index],
+                      **{v: [None if pd.isna(x) else round(float(x), 2) for x in f[f"obs_{v}"]] for v in VARS}}
+    return {"generated": gen.isoformat(timespec="seconds"), "variables": list(VARS), "sites": sites}
+
+
+def from_snapshot(snap: dict) -> tuple[dict[str, pd.DataFrame], pd.Timestamp]:
+    out = {}
+    for sid, d in snap["sites"].items():
+        out[sid] = parse_hourly({"hourly": {"time": d["time"], **{v: d[v] for v in VARS}}})
+    return out, pd.Timestamp(snap["generated"])
+
+
 def fetch_live_weather(lat: float, lon: float, past_days: int = 8, forecast_days: int = 2,
                        timeout: float = 4.0, session: requests.Session | None = None,
                        api_key: str | None = None) -> pd.DataFrame:

@@ -18,6 +18,7 @@ from pathlib import Path
 
 import joblib
 import pandas as pd
+import requests
 import yaml
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,12 +38,13 @@ from .monitoring import (
     score_log,
 )
 from .serving import SiteBundle, clean_frame_from_raw, forecast
-from .weather_live import fetch_live_weather
+from .weather_live import fetch_many, from_snapshot
 
 HISTORY_DAYS = 40
 CACHE_SECONDS = 600
 WEATHER_CACHE_SECONDS = 1800
 WEATHER_RETRY_SECONDS = 300  # after a failed fetch, do not try again (and pay its latency) for this long
+SNAPSHOT_MAX_AGE_H = 12  # a published weather snapshot older than this is not used
 FETCH_DEADLINE_S = 35  # hard limit for the whole USGS pull
 CAVEATS = [
     "Alerts built on this probability were competitive with, not better than, a simple 'DO < threshold + 0.5 mg/L' rule in evaluation.",
@@ -124,7 +126,6 @@ MAX_OBSERVATIONS = 20000  # total points per request (a 40-day history is about 
 _bundles: dict[str, SiteBundle] = {}
 _cache: dict[str, tuple[float, dict]] = {}
 _wx_cache: dict[str, tuple[float, pd.DataFrame]] = {}
-_wx_fail: dict[str, tuple[float, str]] = {}
 _foundation_state: dict = {}
 
 
@@ -141,12 +142,78 @@ def get_bundle(site_id: str) -> SiteBundle:
     return _bundles[site_id]
 
 
+_wx_batch_fail: list = []  # [time, status] of the last failed batch refresh
+_wx_status: dict[str, str] = {}  # site -> how its cached weather was obtained ("ok" or "snapshot (N h old)")
+
+
+def site_coordinates() -> dict[str, tuple[float, float]]:
+    """Station coordinates for every served site (models/site_coordinates.json), so one weather request
+    can cover them all."""
+    path = Path(os.environ.get("DOSENTINEL_COORDS", str(models_dir() / "site_coordinates.json")))
+    if not path.exists():
+        return {}
+    return {k: (v["lat"], v["lon"]) for k, v in json.loads(path.read_text()).items()}
+
+
+def _snapshot_frames() -> tuple[dict[str, pd.DataFrame], str] | None:
+    """Weather published by the scheduled job (DOSENTINEL_WEATHER_SNAPSHOT_URL or _FILE), if recent."""
+    src = os.environ.get("DOSENTINEL_WEATHER_SNAPSHOT_FILE") or os.environ.get("DOSENTINEL_WEATHER_SNAPSHOT_URL")
+    if not src:
+        return None
+    try:
+        if src.startswith(("http://", "https://")):
+            r = requests.get(src, timeout=4.0)
+            r.raise_for_status()
+            snap = r.json()
+        else:
+            snap = json.loads(Path(src).read_text())
+        frames, generated = from_snapshot(snap)
+    except Exception:
+        return None
+    age_h = (pd.Timestamp.now(tz="UTC") - generated).total_seconds() / 3600
+    if age_h > SNAPSHOT_MAX_AGE_H:
+        return None
+    return frames, f"snapshot ({age_h:.1f} h old)"
+
+
+def refresh_weather(bundle: SiteBundle) -> str:
+    """Refresh the weather cache for *all* sites with one request; fall back to the published snapshot.
+
+    Returns a status for `bundle`'s site. Cloud hosts share an address and the free provider limits
+    each address per day, so one batched call per half hour is what keeps this under the limit."""
+    now = time.time()
+    coords = site_coordinates() or {bundle.site_id: (bundle.lat, bundle.lon)}
+    coords.setdefault(bundle.site_id, (bundle.lat, bundle.lon))
+    if _wx_batch_fail and now - _wx_batch_fail[0] < WEATHER_RETRY_SECONDS:
+        status = _wx_batch_fail[1]
+    else:
+        try:
+            frames = fetch_many(coords, api_key=os.environ.get("OPEN_METEO_API_KEY") or None)
+            for sid, W in frames.items():
+                _wx_cache[sid] = (now, W)
+                _wx_status[sid] = "ok"
+            _wx_batch_fail.clear()
+            return "ok"
+        except Exception as e:  # network, HTTP or schema problems must not fail a forecast
+            detail = str(e)[:120]
+            status = f"fetch_failed: {type(e).__name__}" + (f" ({detail})" if detail else "")
+            _wx_batch_fail[:] = [now, status]
+    snap = _snapshot_frames()
+    if snap is not None and bundle.site_id in snap[0]:
+        for sid, W in snap[0].items():
+            _wx_cache[sid] = (now - WEATHER_CACHE_SECONDS + 600, W)  # re-check the live source in ten minutes
+            _wx_status[sid] = snap[1]
+        return snap[1]
+    return status
+
+
 def live_weather(bundle: SiteBundle) -> tuple[pd.DataFrame | None, str]:
     """Recent and forecast weather for the site, cached, with a status that says why it is absent.
 
     The status is returned in every live response (`weather_status`), so a silent fallback to the
-    base model can be diagnosed from outside: "ok", "disabled", "bundle_has_no_weather_models",
-    "bundle_has_no_coordinates", "stale_cache" or "fetch_failed: <error type>"."""
+    base model can be diagnosed from outside: "ok", "snapshot (N h old)", "disabled",
+    "bundle_has_no_weather_models", "bundle_has_no_coordinates", "stale_cache" or
+    "fetch_failed: <error type> (<reason>)"."""
     if os.environ.get("DOSENTINEL_WEATHER", "on") == "off":
         return None, "disabled"
     if not bundle.wx_quantile_models:
@@ -156,23 +223,14 @@ def live_weather(bundle: SiteBundle) -> tuple[pd.DataFrame | None, str]:
     now = time.time()
     hit = _wx_cache.get(bundle.site_id)
     if hit is not None and now - hit[0] < WEATHER_CACHE_SECONDS:
-        return hit[1], "ok"
-    failed = _wx_fail.get(bundle.site_id)
-    if failed is not None and now - failed[0] < WEATHER_RETRY_SECONDS:
-        if hit is not None and now - hit[0] < 6 * 3600:
-            return hit[1], "stale_cache"
-        return None, failed[1]
-    try:
-        W = fetch_live_weather(bundle.lat, bundle.lon, api_key=os.environ.get("OPEN_METEO_API_KEY") or None)
-    except Exception as e:  # network, HTTP or schema problems must not fail a forecast
-        detail = str(e)[:120]
-        _wx_fail[bundle.site_id] = (now, f"fetch_failed: {type(e).__name__}" + (f" ({detail})" if detail else ""))
-        if hit is not None and now - hit[0] < 6 * 3600:
-            return hit[1], "stale_cache"
-        return None, _wx_fail[bundle.site_id][1]
-    _wx_fail.pop(bundle.site_id, None)
-    _wx_cache[bundle.site_id] = (now, W)
-    return W, "ok"
+        return hit[1], _wx_status.get(bundle.site_id, "ok")
+    status = refresh_weather(bundle)
+    hit = _wx_cache.get(bundle.site_id)
+    if hit is not None and (status == "ok" or status.startswith("snapshot")):
+        return hit[1], status
+    if hit is not None and now - hit[0] < 6 * 3600:
+        return hit[1], "stale_cache"
+    return None, status
 
 
 def foundation_model():
