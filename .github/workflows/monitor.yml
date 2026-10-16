@@ -35,10 +35,15 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: pyproject.toml
+          cache-dependency-path: requirements-serve.txt
 
       - name: Install
-        run: pip install -e ".[serve,tracking]"
+        # the bundles are pickles written with these exact versions (pandas 3 drops pytz and cannot load
+        # them), so use the same pins as the Docker image
+        run: |
+          pip install -r requirements-serve.txt
+          pip install --no-deps -e .
+          pip install "mlflow>=2.14"
 
       - name: Restore monitoring state
         run: |
