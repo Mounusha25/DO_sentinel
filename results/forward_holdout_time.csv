@@ -1,0 +1,15 @@
+site,role,episodes,episodes_day_apart,per_year,independent_per_year
+USGS-03293500,flashy_urban,208,107,104.0,53.5
+USGS-02344630,regulated,40,28,20.0,14.0
+USGS-08065350,slow_river,12,11,6.0,5.5
+USGS-02336313,flashy,57,37,28.5,18.5
+USGS-02110400,no_discharge,176,105,88.0,52.5
+USGS-10133650,steady,57,29,28.5,14.5
+USGS-01654500,flashy,41,31,20.5,15.5
+USGS-05576195,no_discharge,128,66,64.0,33.0
+USGS-02110704,no_discharge,75,31,37.5,15.5
+USGS-08068000,moderate,63,30,31.5,15.0
+USGS-07143672,flashy,46,31,23.0,15.5
+USGS-03290500,moderate,40,20,20.0,10.0
+USGS-01184000,steady,21,10,10.5,5.0
+USGS-08211200,moderate,13,11,6.5,5.5
