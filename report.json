@@ -1,22 +1,7 @@
 {
-  "generated": "2026-10-16T00:51:54+00:00",
-  "sites_checked": 0,
-  "sites_failed": [
-    "USGS-03293500",
-    "USGS-02344630",
-    "USGS-08065350",
-    "USGS-02336313",
-    "USGS-02110400",
-    "USGS-10133650",
-    "USGS-01654500",
-    "USGS-05576195",
-    "USGS-02110704",
-    "USGS-08068000",
-    "USGS-07143672",
-    "USGS-03290500",
-    "USGS-01184000",
-    "USGS-08211200"
-  ],
+  "generated": "2026-10-16T00:55:30+00:00",
+  "sites_checked": 14,
+  "sites_failed": [],
   "retrain_recommended": [],
   "input_drift_alerts": [],
   "forward_holdout": [],
@@ -24,59 +9,745 @@
   "sites": {
     "USGS-03293500": {
       "site_id": "USGS-03293500",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "warning",
+      "as_of": "2026-10-16T00:15:00+00:00",
+      "retrain": {
+        "site_id": "USGS-03293500",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.07440476190476186,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "moderate",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "moderate",
+          "spcond": "stable",
+          "turb": "moderate",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 0.9255952380952381
+      },
+      "reference_mae": {
+        "1": 0.09446031270077039,
+        "3": 0.24505985060153826,
+        "6": 0.42609596219027723,
+        "12": 0.5882793422011616,
+        "24": 0.6739881165474347
+      }
     },
     "USGS-02344630": {
       "site_id": "USGS-02344630",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-16T00:00:00+00:00",
+      "retrain": {
+        "site_id": "USGS-02344630",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "elevated",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "elevated",
+          "temp": "moderate",
+          "spcond": "stable",
+          "turb": "stable",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.0765520897987557,
+        "3": 0.16408428366266967,
+        "6": 0.25290652743136094,
+        "12": 0.33076759106371695,
+        "24": 0.38711652069791497
+      }
     },
     "USGS-08065350": {
       "site_id": "USGS-08065350",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-15T23:45:00+00:00",
+      "retrain": {
+        "site_id": "USGS-08065350",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "stable",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "stable",
+          "spcond": "stable",
+          "turb": "unknown",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.09419440330688614,
+        "3": 0.12504880909349542,
+        "6": 0.19709896727136927,
+        "12": 0.2983043308813175,
+        "24": 0.4327333857989062
+      }
     },
     "USGS-02336313": {
       "site_id": "USGS-02336313",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "warning",
+      "as_of": "2026-10-16T00:30:00+00:00",
+      "retrain": {
+        "site_id": "USGS-02336313",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "moderate",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "moderate",
+          "spcond": "stable",
+          "turb": "stable",
+          "q": "unknown"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.1044605375264826,
+        "3": 0.23009216748090197,
+        "6": 0.36601489710396956,
+        "12": 0.45522532503998137,
+        "24": 0.4648541028151655
+      }
     },
     "USGS-02110400": {
       "site_id": "USGS-02110400",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "warning",
+      "as_of": "2026-10-16T00:15:00+00:00",
+      "retrain": {
+        "site_id": "USGS-02110400",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "elevated",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "elevated",
+          "spcond": "elevated",
+          "turb": "unknown",
+          "q": "unknown"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.195235250871031,
+        "3": 0.4647472628385636,
+        "6": 0.7259443449367934,
+        "12": 0.8474102344255043,
+        "24": 0.8713139198486387
+      }
     },
     "USGS-10133650": {
       "site_id": "USGS-10133650",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-16T00:30:00+00:00",
+      "retrain": {
+        "site_id": "USGS-10133650",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "elevated",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "elevated",
+          "spcond": "stable",
+          "turb": "unknown",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.1288748650704393,
+        "3": 0.24345284363919253,
+        "6": 0.30824295971905474,
+        "12": 0.3593083621331982,
+        "24": 0.3542311588388161
+      }
     },
     "USGS-01654500": {
       "site_id": "USGS-01654500",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-15T23:45:00+00:00",
+      "retrain": {
+        "site_id": "USGS-01654500",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "major",
+        "n_major": 1,
+        "alert": false,
+        "features": {
+          "do": "major",
+          "temp": "elevated",
+          "spcond": "stable",
+          "turb": "stable",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.12004101373015232,
+        "3": 0.2290046284521984,
+        "6": 0.33799985932428167,
+        "12": 0.45162904439158075,
+        "24": 0.5175273563473031
+      }
     },
     "USGS-05576195": {
       "site_id": "USGS-05576195",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "warning",
+      "as_of": "2026-10-15T19:30:00+00:00",
+      "retrain": {
+        "site_id": "USGS-05576195",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.1026785714285714,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "elevated",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "stable",
+          "spcond": "elevated",
+          "turb": "stable",
+          "q": "unknown"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 0.8973214285714286
+      },
+      "reference_mae": {
+        "1": 0.24569831101407316,
+        "3": 0.37542083488702893,
+        "6": 0.5057967957156214,
+        "12": 0.6451920541804111,
+        "24": 0.7883480422934294
+      }
     },
     "USGS-02110704": {
       "site_id": "USGS-02110704",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "warning",
+      "as_of": "2026-10-16T00:15:00+00:00",
+      "retrain": {
+        "site_id": "USGS-02110704",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "major",
+        "n_major": 1,
+        "alert": false,
+        "features": {
+          "do": "elevated",
+          "temp": "moderate",
+          "spcond": "stable",
+          "turb": "major",
+          "q": "unknown"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.06966331059799429,
+        "3": 0.12125119345982911,
+        "6": 0.14122402471323078,
+        "12": 0.15660227702763238,
+        "24": 0.19332658626618976
+      }
     },
     "USGS-08068000": {
       "site_id": "USGS-08068000",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-16T00:15:00+00:00",
+      "retrain": {
+        "site_id": "USGS-08068000",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0029761904761904656,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "elevated",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "elevated",
+          "spcond": "stable",
+          "turb": "stable",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 0.9970238095238095
+      },
+      "reference_mae": {
+        "1": 0.13040156803376768,
+        "3": 0.23244536071376012,
+        "6": 0.323500812638527,
+        "12": 0.38824278251707184,
+        "24": 0.4361210322822317
+      }
     },
     "USGS-07143672": {
       "site_id": "USGS-07143672",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-16T00:15:00+00:00",
+      "retrain": {
+        "site_id": "USGS-07143672",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "moderate",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "stable",
+          "spcond": "moderate",
+          "turb": "stable",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.08258792637614179,
+        "3": 0.17843917276550988,
+        "6": 0.306544756050519,
+        "12": 0.42984237741414494,
+        "24": 0.5022428053627375
+      }
     },
     "USGS-03290500": {
       "site_id": "USGS-03290500",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-16T00:45:00+00:00",
+      "retrain": {
+        "site_id": "USGS-03290500",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "elevated",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "elevated",
+          "spcond": "stable",
+          "turb": "stable",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.159733029441259,
+        "3": 0.22780182644882155,
+        "6": 0.28878048185497673,
+        "12": 0.3536504827079397,
+        "24": 0.427635041402283
+      }
     },
     "USGS-01184000": {
       "site_id": "USGS-01184000",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-16T00:00:00+00:00",
+      "retrain": {
+        "site_id": "USGS-01184000",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "stable",
+        "n_major": 0,
+        "alert": false,
+        "features": {
+          "do": "stable",
+          "temp": "stable",
+          "spcond": "stable",
+          "turb": "stable",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.09368646961811372,
+        "3": 0.1524173567319648,
+        "6": 0.21146407752416937,
+        "12": 0.26513848552742203,
+        "24": 0.29698193162640785
+      }
     },
     "USGS-08211200": {
       "site_id": "USGS-08211200",
-      "error": "UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\\n'"
+      "issued": 5,
+      "forecast_model": "gbm_weather",
+      "weather_status": "ok",
+      "action": "none",
+      "as_of": "2026-10-16T00:00:00+00:00",
+      "retrain": {
+        "site_id": "USGS-08211200",
+        "model_age_days": 3.0,
+        "missing_do_7d": 0.0,
+        "logged_forecasts": 5,
+        "retrain": false,
+        "reasons": [],
+        "scored_forecasts": 0
+      },
+      "input_drift": {
+        "worst": "major",
+        "n_major": 1,
+        "alert": false,
+        "features": {
+          "do": "major",
+          "temp": "elevated",
+          "spcond": "stable",
+          "turb": "stable",
+          "q": "stable"
+        }
+      },
+      "output_drift": {
+        "window_days": 14,
+        "n_current": 5,
+        "n_reference": 0,
+        "median_24h": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "p_low_do": {
+          "psi": null,
+          "status": "unknown"
+        },
+        "status": "unknown"
+      },
+      "input_health": {
+        "do_observed_7d": 1.0
+      },
+      "reference_mae": {
+        "1": 0.11032503944433429,
+        "3": 0.255719651069561,
+        "6": 0.3903282447296921,
+        "12": 0.4725628032354132,
+        "24": 0.4184048947774734
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
-# Monitoring report, 2026-10-16T00:51:54+00:00
+# Monitoring report, 2026-10-16T00:55:30+00:00
 
-* Sites checked: 0 (failed: USGS-03293500, USGS-02344630, USGS-08065350, USGS-02336313, USGS-02110400, USGS-10133650, USGS-01654500, USGS-05576195, USGS-02110704, USGS-08068000, USGS-07143672, USGS-03290500, USGS-01184000, USGS-08211200)
+* Sites checked: 14 (failed: none)
 * Retrain recommended: none
 * Input drift alerts (two or more inputs far outside their normal year-to-year range): none
 * Matured forecasts scored so far (forward holdout): 0
@@ -9,17 +9,17 @@
 
 | Site | Model | Weather | Action | Input drift | Output drift | Retrain |
 |---|---|---|---|---|---|---|
-| USGS-01184000 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-01654500 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-02110400 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-02110704 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-02336313 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-02344630 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-03290500 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-03293500 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-05576195 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-07143672 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-08065350 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-08068000 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-08211200 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
-| USGS-10133650 | - | - | - | - | - | error: UpstreamError: Invalid header value b'0G85ZyFBMZcfkh2pbOBlVnb46nDIUqeow5thMPYe\n' |
+| USGS-01184000 | gbm_weather | ok | none | stable | unknown | no |
+| USGS-01654500 | gbm_weather | ok | none | major (1 major) | unknown | no |
+| USGS-02110400 | gbm_weather | ok | warning | elevated | unknown | no |
+| USGS-02110704 | gbm_weather | ok | warning | major (1 major) | unknown | no |
+| USGS-02336313 | gbm_weather | ok | warning | moderate | unknown | no |
+| USGS-02344630 | gbm_weather | ok | none | elevated | unknown | no |
+| USGS-03290500 | gbm_weather | ok | none | elevated | unknown | no |
+| USGS-03293500 | gbm_weather | ok | warning | moderate | unknown | no |
+| USGS-05576195 | gbm_weather | ok | warning | elevated | unknown | no |
+| USGS-07143672 | gbm_weather | ok | none | moderate | unknown | no |
+| USGS-08065350 | gbm_weather | ok | none | stable | unknown | no |
+| USGS-08068000 | gbm_weather | ok | none | elevated | unknown | no |
+| USGS-08211200 | gbm_weather | ok | none | major (1 major) | unknown | no |
+| USGS-10133650 | gbm_weather | ok | none | elevated | unknown | no |
