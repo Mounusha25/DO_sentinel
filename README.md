@@ -25,8 +25,8 @@ Fourteen sites in 11 states, five years of 15-minute data, one year of out-of-sa
 
 ## What did not work
 
-- **Slow sensor drift** cannot be detected from one sensor, nor with a neighbouring sensor within 70 km. An early 28% detection rate was chance; a zero-drift control gave the same.
-- **The 0.5 alerts/site/week budget** is met only by the classifier (0.75 anticipated recall against 0.32 for a margin rule). The interval rule sends about 1.3 alerts per site-week, so it is used only where a site has no trained classifier.
+- **Slow sensor drift** is detectable only when it is large: a drift reaching about 3 mg/L over two weeks is caught 70 to 90% of the time at one false alarm per 5 to 20 weeks, and anything under 1 mg/L is not detectable from one sensor. A neighbouring sensor within 70 km did not help. An early 28% detection rate was chance.
+- **The 0.5 alerts/site/week budget does not hold out of sample** (0.4 to 0.7 on average, over 0.5 at 6 to 9 of 14 sites) and is infeasible at the four sites that dip almost nightly, where no rule anticipates anything. At the other ten sites anticipated recall is 0.66 (margin rule) to 0.83 (pooled classifier), with no difference between rules that the 14 sites can resolve (about 0.25 recall).
 - **A global model across sites**, and predicting percent saturation, were worse than per-site models.
 - **Weather** helps 24 h forecasts (+8.6%) but not alerts.
 
@@ -54,7 +54,7 @@ Evaluation is chronological and walk-forward; preprocessing, thresholds and cali
 ```
 src/dosentinel/    library: ingest, validate, features, models, calibration, decision, faults, serving, api
 scripts/           runnable pipelines and experiments (see scripts/README.md)
-tests/             151 tests, including leakage tests for every forecaster and feature set
+tests/             160 tests, including leakage tests for every forecaster and feature set
 dashboard/         template, precomputed replay data and US map for the dashboard
 docs/              built dashboard and case study (served by GitHub Pages)
 config/            sites.yaml: the 14 sites, their selection rationale and exclusions
@@ -69,7 +69,7 @@ PROBLEM.md  MODEL_CARD.md  OPERATIONS.md  render.yaml  Dockerfile  requirements-
 
 ```bash
 pip install -e ".[dev,serve]"              # Python 3.11 or newer
-pytest                                     # 151 tests
+pytest                                     # 160 tests
 ruff check src scripts tests               # lint
 
 python scripts/build_dashboard.py          # rebuild docs/index.html from dashboard/

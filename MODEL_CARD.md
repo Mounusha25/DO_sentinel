@@ -25,7 +25,7 @@ success criteria.
 
 ## Out of scope
 * Regulatory compliance or enforcement decisions.
-* Detecting slow sensor drift (shown not to be detectable from one sensor).
+* Detecting slow sensor drift below about 2 mg/L, or over less than two weeks (RESULTS.md section 14).
 * Sites that differ from the 14 evaluated ones without re-validation; cross-site transfer kept
   roughly half of the site-specific gain at 1-6 h and almost none at 24 h.
 * Real-time operation without monitoring (monitoring is an add-on, not in the evaluation).
@@ -49,7 +49,8 @@ success criteria.
   3.6 for a "DO < threshold + 0.5 mg/L" rule (recall 0.89-0.99 against 0.76, at lower precision).
   Between the classifier and the interval rule there is no significant difference. At the 0.5
   alerts/site/week budget only the classifier is clearly better than the margin rule.
-* Faults (synthetic): spikes 84%, stuck-low 99%, offsets 65%, flatlines 59%, drift at chance.
+* Faults (synthetic): spikes 84%, stuck-low 99%, offsets 65%, flatlines 59%. Slow drift: about 3 mg/L over two
+  weeks is caught 70 to 90% of the time at one false alarm per 5 to 20 site-weeks; under 1 mg/L is not detectable.
 
 ## Experiments not adopted
 A global model across sites and a saturation-fraction target were no better than per-site

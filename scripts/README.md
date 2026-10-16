@@ -33,6 +33,9 @@ Install the package first (`pip install -e ".[dev,serve]"`); scripts marked *exp
 | `run_alert_bound.py` | Does alerting on the forecast interval beat the classifier or the margin rule? | `results/alert_bound_*.csv` |
 | `run_linear_baseline.py` | Does a ridge model with the same inputs match the boosting? | `results/linear_*.csv` |
 | `run_drift_peer.py` | Does a neighbouring sensor help detect drift? | `results/drift_peer_*.csv` |
+| `run_drift_cusum.py` | CUSUM / EWMA drift detection at a fixed false-alarm budget; minimum detectable drift | `results/drift_cusum_*.csv` |
+| `run_budget_fit.py` | Alert cutoffs fitted on year 1 to a budget, frozen, scored on year 2 | `results/budget_fit_*.csv` |
+| `estimate_holdout_time.py` | Episodes per month, and months until the forward holdout can speak | `results/forward_holdout_time.csv` |
 
 ## Product and reports
 

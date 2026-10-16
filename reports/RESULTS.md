@@ -19,7 +19,10 @@ Sections: [1 Forecasting and alerts](#1-forecasting-calibration-alerts-and-trans
 [8 Conformalized blend](#8-the-chronos-2--gradient-boosting-blend-with-walk-forward-conformal-intervals) ·
 [9 Alerting on the forecast interval](#9-alerting-on-the-forecast-interval) ·
 [10 Linear baseline](#10-a-well-specified-linear-model) · [11 Peer sensor and drift](#11-does-a-neighbouring-sensor-help-detect-drift) ·
-[12 Input drift monitoring](#12-input-drift-monitoring)
+[12 Input drift monitoring](#12-input-drift-monitoring) ·
+[13 Budget-matched alert cutoffs](#13-alert-cutoffs-fitted-on-the-first-year-and-frozen) ·
+[14 Minimum detectable drift](#14-slow-drift-change-detection-and-the-minimum-detectable-drift) ·
+[15 Forward-holdout timing and power](#15-how-long-until-the-forward-holdout-can-say-anything)
 
 ## 1. Forecasting, calibration, alerts and transfer (14 sites, 5 years of history, 2-year walk-forward test)
 
@@ -281,3 +284,112 @@ site, feature and calendar month, a ten-bin quantile sketch of the training year
 - Output drift (the latest two weeks of the forecast log against the previous two, on the 24 h median and the
   low-DO probability) uses the conventional thresholds because there is no history to judge it against, and is
   informational only.
+
+## 13. Alert cutoffs fitted on the first year and frozen
+
+Sections 2 and 9 compared alert rules at a budget with the parameter chosen on the test window, which flatters
+every rule. `scripts/run_budget_fit.py` removes that: per site and rule, the cutoff is fitted on the first year
+(folds 1-4) as the most sensitive one whose alert rate stays within 0.5 alerts per week, frozen, and scored on the
+second year (folds 5-8, 4-hourly origins, 601 episodes at 14 sites). Alerts are clusters separated by more than 6 h.
+Rules: the margin rule; the classifier; the interval rule (worst-horizon z-score under the conformalized 80%
+interval, ranked on the z-scale because the probability saturates at 1); the mean of the classifier's and interval
+rule's log-odds; and a classifier trained on the other 13 sites only.
+
+| Rule | Alerts / site / week (out of sample) | Sites over 0.5 | Anticipated recall | Detected recall | Cluster precision | Cost / week, mean (median) |
+|---|---|---|---|---|---|---|
+| margin rule | 0.73 | 9 | 0.47 | 0.78 | 0.76 | 6.29 (2.93) |
+| classifier | 0.41 | 6 | 0.51 | 0.65 | 0.64 | 5.73 (1.90) |
+| interval | 0.57 | 7 | 0.57 | 0.71 | 0.69 | 5.62 (1.34) |
+| average of the two | 0.51 | 8 | 0.54 | 0.70 | 0.64 | 5.72 (1.73) |
+| pooled classifier (other sites only) | 0.50 | 7 | 0.60 | 0.74 | 0.59 | 5.48 (1.06) |
+
+- **The budget does not hold out of sample.** A cutoff that sends 0.5 alerts per week in the first year sends
+  0.4 to 0.7 on average in the second, and more than 0.5 at 6 to 9 of 14 sites (up to 1.3). Conditions drift between
+  years; a fixed cutoff is not a fixed alert rate.
+- **At four sites no rule anticipates anything.** USGS-02110400, 02110704, 03293500 and 05576195 have 342 of the 601
+  episodes (about two a week). Under a 0.5 per week budget the cutoff is pushed to the extreme tail, where only an
+  already-low state exceeds it, so anticipated recall is 0.00 to 0.01 for every rule. The PROBLEM.md budget is
+  infeasible for daily-dipping streams, whatever the model.
+- **At the other ten sites** anticipated recall is 0.83 (pooled classifier), 0.79 (interval), 0.76 (average), 0.71
+  (classifier) and 0.66 (margin rule). Every ordering is within noise: no paired difference is significant. The
+  largest, pooled classifier over margin rule, is +0.12 anticipated recall [-0.10, +0.35], better at 6 sites and
+  worse at 3 (sign test p = 0.51); between the model-based rules the CIs are about +-0.2 and wins and losses are
+  split evenly. `results/budget_fit_paired.csv` has all pairs.
+- **The dead-classifier site is fixed two ways.** At USGS-01184000 the classifier never alerts (cost 4.05 per week,
+  recall 0); the interval rule (0.56), the pooled classifier (0.42) and the margin rule (0.42) all recover it (anticipated
+  recall 0.95 to 1.0), so a pooled classifier is a sound fallback there and the interval rule is a second one.
+- **"Alerts per week" counts clusters more than 6 h apart,** so repeated dips on successive nights count separately.
+  With a 24 h cooldown the same alerts are 0.16 to 0.21 per site per week on average (against 0.41 to 0.73). The
+  budget is therefore partly a statement about how many alerts a person is paged for, and an episode cooldown would
+  change what 0.5 means; the choice should follow how the team is actually notified.
+- **Power.** The standard deviation of per-site recall differences between two model rules is about 0.34, so with 14
+  sites a paired difference smaller than about 0.25 recall (80% power, 5% level) cannot be told apart from noise. The
+  earlier "not significantly different" results are mostly a statement about sample size, not about equality.
+- Caveats: one second year; cutoffs are per site and need a year of events to fit; the first fold has no conformal
+  margin (margin 0); weather models were not used here (the first year predates the archived forecasts).
+
+## 14. Slow drift, change detection and the minimum detectable drift
+
+Sections 7 and 11 reported slow drift as "at chance". Two problems made that uninformative: window means flag a
+false alarm in about half of all weeks at 0.67 per week, so "detection within a week" is mostly chance, and a
+yes/no verdict hides how large a drift would have to be. `scripts/run_drift_cusum.py` fixes the false-alarm budget
+low (0.05 and 0.2 episodes per site-week) and uses change-detection statistics on hourly standardized residuals of
+the long-lag-anchored model: a two-sided CUSUM (reference 0.5 sd), an EWMA (lambda 0.03) and the 72 h window mean.
+Residuals are centred on their own median from 75 to 15 days earlier (so a drift shorter than 15 days is not
+absorbed), scaled by a lagged robust spread, and winsorised at 4 sd. Ramps (0 to +-magnitude, then snap back) of 0.25
+to 3 mg/L over 3, 7 and 14 days are injected into the held-out year, with 84 events per magnitude and duration cell
+(14 sites, 18 repetitions), and zero-magnitude windows are scored identically for the chance level.
+
+Detection rate at 0.05 false alarms per site-week, "equal footing" (threshold set on clean regions of the same
+series, the best case), with chance in the last column:
+
+| Ramp length | Final drift | CUSUM | EWMA | 72 h mean | Chance (CUSUM / EWMA) |
+|---|---|---|---|---|---|
+| 14 d | 0.5 mg/L | 32% | 15% | 13% | 29% / 16% |
+| 14 d | 1 mg/L | 40% | 24% | 25% | |
+| 14 d | 2 mg/L | 64% | 52% | 49% | |
+| 14 d | 3 mg/L | **86%** | 69% | 68% | |
+| 7 d | 1 mg/L | 29% | 21% | 24% | 18% / 9% |
+| 7 d | 2 mg/L | 39% | 39% | 37% | |
+| 7 d | 3 mg/L | 46% | 55% | 54% | |
+| 3 d | 3 mg/L | 17% | 37% | 31% | 11% / 10% |
+
+- **A drift is reliably detectable (80% or more) only if it reaches about 3 mg/L over at least two weeks.** Equal-footing
+  CUSUM at 0.05 per week reaches 86% there; nothing reaches 80% at 7 days or at 2 mg/L. Allowing 0.2 false alarms per
+  week, 14-day ramps to 2 mg/L are caught about 70% of the time and to 3 mg/L about 88%, by all three statistics.
+  The minimum-detectable table is `results/drift_cusum_mdd.csv`.
+- **Chance is no longer the explanation, but the gain is smaller than the headline suggests.** EWMA and the window mean
+  are 2 to 4 times above chance for 14-day drifts of 1.5 mg/L and above, and barely above it below 1 mg/L; CUSUM
+  at 0.5 mg/L over 14 days (32%) is not distinguishable from its own chance rate (29%).
+- **CUSUM is the most sensitive statistic and the least deployable.** Its threshold, set on the calibration year, gave
+  0.57 false alarms per site-week in the test year against a target of 0.05 (EWMA 0.056 and the window mean 0.054
+  hold); a regime shift of the model's own bias accumulates in it. With thresholds fitted on the same series it
+  still reached only 0.20. Detection rates from the "deployable" thresholds are therefore inflated by false alarms.
+- **Statements to make:** "drifts that reach 2 to 3 mg/L over two weeks are detected about 50 to 90% of the time at one
+  false alarm per five to twenty weeks; drifts under 1 mg/L are not detectable from one sensor".
+- Caveats: simple linear ramps injected into approved data; one random draw sequence per site; the model is fitted
+  once on clean data (its own drift is handled by the lagged baseline); equal-footing thresholds are an upper bound;
+  there are still no real drift labels. USGS publishes field-visit check readings (a `field-measurements` collection
+  in the API), which would be real evidence; my address was rate-limited when I tried them, so this is not done.
+
+## 15. How long until the forward holdout can say anything?
+
+Alerts are scored per episode, so the forward holdout is limited by episodes, not forecasts.
+`scripts/estimate_holdout_time.py` counts them over the last two years (episodes separated by more than a day
+counted once, as an alert cluster would cover them):
+
+- **Pooled over the 14 sites: about 23 independent episodes per month.** Median single site 1.3 per month (0.4 to 4.5).
+  Four sites contribute more than half of them, and they are seasonal.
+- **Months to estimate an anticipated recall near 0.8 to a given half-width** (95%, normal approximation):
+
+| Half-width | Episodes | Months, 14 sites pooled | Months, one typical site |
+|---|---|---|---|
+| +-0.20 | 16 | 0.7 | 13 |
+| +-0.15 | 28 | 1.2 | 22 |
+| +-0.10 | 62 | 2.7 | 49 |
+
+- A paired comparison of two rules to +-0.10 needs about twice that (about 124 episodes, 5.4 months pooled).
+- So a pooled forward-holdout number is a matter of one to three months; per-site alerting claims would take years and
+  should not be made. Forecast accuracy (MAE, interval coverage) accumulates much faster, at 4 issues per site per day.
+- Caveat: the monitoring job scores forecast error and coverage per forecast; it does not yet score alerts per
+  episode, which is what this estimate is about.

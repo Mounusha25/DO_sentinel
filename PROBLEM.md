@@ -59,7 +59,7 @@ sections 8-9) were added after this scorecard; see "Changes after the freeze" be
 |---|---|---|---|
 | 1 | At least 10% lower MAE than the best baseline at 6 h and 12 h, CI excluding zero | 6 h: +25.2% [+23.6, +26.7]; 12 h: +18.4% [+16.5, +20.2] (with weather the 12-24 h skill is higher) | **Met** |
 | 2 | 80% intervals cover 75-85% | After conformal calibration: mean 0.78-0.79 per horizon; 93% of site-horizon cells inside 0.75-0.85; worst sites 0.67-0.68. Raw intervals: 0.71-0.76 | **Met on average, not at every site** |
-| 3 | Anticipated recall >= 0.7 at <= 0.5 alerts/site/week, not worse than the naive rule | Mean recall 0.795 vs 0.418 for the naive rule; 10 of 14 sites >= 0.7; paired difference +0.38 [+0.03, +0.69], sign test p = 0.23; no advantage at >= 1 alert/week | **Met on average; evidence weak** |
+| 3 | Anticipated recall >= 0.7 at <= 0.5 alerts/site/week, not worse than the naive rule | Mean recall 0.795 vs 0.418 for the naive rule; 10 of 14 sites >= 0.7; paired difference +0.38 [+0.03, +0.69], sign test p = 0.23; no advantage at >= 1 alert/week | **Met on average; evidence weak** (see the 2026-10-15 re-evaluation below) |
 | 4 | >= 80% of injected jumps and flatlines flagged at <= 1 false flag/site/week | Spikes 84% and stuck-low 99% at about 1.0 false flag/week; flatlines 59%, offsets 65%; drift 30% (chance level) | **Partly met**: spikes and stuck readings yes; flatlines and offsets no |
 | 5 | Answers in < 10 s, reports freshness and missing inputs | A warm call returns well under 10 s; a live USGS pull takes about 5 s and fails fast (503 with Retry-After) after 35 s. Reports data age and the fraction of the last 24 h observed | **Met** |
 
@@ -79,3 +79,16 @@ The forward holdout above starts from the models frozen on 2026-10-13. Since the
 * The alert rule for a site with no trained classifier (USGS-01184000) now reads the forecast interval
   instead of a constant probability. That changes this one site's alerts; the rule itself was
   designed after seeing walk-forward curves (its cutoff is the cost-derived one, not tuned).
+
+## Re-evaluation of criterion 3 with cutoffs fitted before the test (2026-10-15)
+
+Criterion 3 was first scored with each rule's parameter chosen on the test window. Fitting each site's cutoff on
+the first year to 0.5 alerts per week and scoring the second (RESULTS.md section 13):
+
+* The budget is **not** held out of sample: 0.4 to 0.7 alerts per site per week on average, above 0.5 at 6 to 9 of 14
+  sites.
+* Anticipated recall is 0.66 to 0.83 at ten sites and **about 0 at the four sites that dip almost nightly** (342 of
+  601 episodes): a 0.5 per week budget is infeasible there for any model.
+* No rule is significantly better than another; the paired differences are within about +-0.25 recall.
+
+Verdict for criterion 3 revised to **Partly met**: met at ten sites with weak evidence, not attainable at four.
