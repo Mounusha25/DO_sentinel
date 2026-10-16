@@ -1,1 +1,2 @@
 site_id,issued_at,horizon_h,as_of,target_time,median_mgL,low_mgL,high_mgL,p_low_do_within_24h,action,forecast_model,observed,abs_error,inside
+USGS-08065350,2026-10-16 00:55:30.393349+00:00,1,2026-10-15 23:45:00+00:00,2026-10-16 00:00:00+00:00,7.667065709941004,7.6446878262344,7.787691534080192,0.002781612266505,none,gbm_weather,7.7,0.032934290058996396,1.0
