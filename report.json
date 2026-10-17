@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-16T18:35:18+00:00",
+  "generated": "2026-10-17T01:00:11+00:00",
   "sites_checked": 14,
   "sites_failed": [],
   "retrain_recommended": [],
@@ -8,49 +8,56 @@
     {
       "forecast_model": "gbm_weather",
       "horizon_h": 1,
-      "n": 56,
-      "mae": 0.1201,
-      "coverage": 0.75
+      "n": 70,
+      "mae": 0.1241,
+      "coverage": 0.7571
     },
     {
       "forecast_model": "gbm_weather",
       "horizon_h": 3,
-      "n": 56,
-      "mae": 0.1983,
-      "coverage": 0.8214
+      "n": 70,
+      "mae": 0.2168,
+      "coverage": 0.8
     },
     {
       "forecast_model": "gbm_weather",
       "horizon_h": 6,
-      "n": 56,
-      "mae": 0.3237,
+      "n": 70,
+      "mae": 0.3166,
       "coverage": 0.7857
     },
     {
       "forecast_model": "gbm_weather",
       "horizon_h": 12,
-      "n": 42,
-      "mae": 0.363,
-      "coverage": 0.7381
+      "n": 56,
+      "mae": 0.3611,
+      "coverage": 0.7679
+    },
+    {
+      "forecast_model": "gbm_weather",
+      "horizon_h": 24,
+      "n": 30,
+      "mae": 0.5237,
+      "coverage": 0.6667
     }
   ],
-  "forward_holdout_rows": 210,
+  "forward_holdout_rows": 296,
   "sites": {
     "USGS-03293500": {
       "site_id": "USGS-03293500",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "warning",
-      "as_of": "2026-10-16T18:15:00+00:00",
+      "as_of": "2026-10-17T00:15:00+00:00",
       "retrain": {
         "site_id": "USGS-03293500",
         "model_age_days": 4.0,
         "missing_do_7d": 0.07440476190476186,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "moderate",
@@ -66,7 +73,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -92,18 +99,18 @@
     "USGS-02344630": {
       "site_id": "USGS-02344630",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
-      "action": "maintenance",
-      "as_of": "2026-10-16T18:00:00+00:00",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
+      "action": "none",
+      "as_of": "2026-10-17T00:00:00+00:00",
       "retrain": {
         "site_id": "USGS-02344630",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "elevated",
@@ -119,7 +126,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -145,18 +152,18 @@
     "USGS-08065350": {
       "site_id": "USGS-08065350",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "none",
-      "as_of": "2026-10-16T17:45:00+00:00",
+      "as_of": "2026-10-17T00:45:00+00:00",
       "retrain": {
         "site_id": "USGS-08065350",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "stable",
@@ -172,7 +179,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -198,18 +205,18 @@
     "USGS-02336313": {
       "site_id": "USGS-02336313",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "warning",
-      "as_of": "2026-10-16T17:30:00+00:00",
+      "as_of": "2026-10-17T00:30:00+00:00",
       "retrain": {
         "site_id": "USGS-02336313",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "moderate",
@@ -225,7 +232,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -251,18 +258,18 @@
     "USGS-02110400": {
       "site_id": "USGS-02110400",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "warning",
-      "as_of": "2026-10-16T18:15:00+00:00",
+      "as_of": "2026-10-17T00:15:00+00:00",
       "retrain": {
         "site_id": "USGS-02110400",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "elevated",
@@ -278,7 +285,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -304,18 +311,18 @@
     "USGS-10133650": {
       "site_id": "USGS-10133650",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "none",
-      "as_of": "2026-10-16T17:30:00+00:00",
+      "as_of": "2026-10-17T00:30:00+00:00",
       "retrain": {
         "site_id": "USGS-10133650",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 14
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "elevated",
@@ -331,7 +338,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -357,18 +364,18 @@
     "USGS-01654500": {
       "site_id": "USGS-01654500",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "none",
-      "as_of": "2026-10-16T17:45:00+00:00",
+      "as_of": "2026-10-16T23:45:00+00:00",
       "retrain": {
         "site_id": "USGS-01654500",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "elevated",
@@ -384,7 +391,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -410,18 +417,18 @@
     "USGS-05576195": {
       "site_id": "USGS-05576195",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "warning",
-      "as_of": "2026-10-16T17:30:00+00:00",
+      "as_of": "2026-10-17T00:00:00+00:00",
       "retrain": {
         "site_id": "USGS-05576195",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0029761904761904656,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 16
+        "scored_forecasts": 23
       },
       "input_drift": {
         "worst": "elevated",
@@ -437,7 +444,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -463,18 +470,18 @@
     "USGS-02110704": {
       "site_id": "USGS-02110704",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "warning",
-      "as_of": "2026-10-16T18:15:00+00:00",
+      "as_of": "2026-10-17T00:15:00+00:00",
       "retrain": {
         "site_id": "USGS-02110704",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "major",
@@ -490,7 +497,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -516,18 +523,18 @@
     "USGS-08068000": {
       "site_id": "USGS-08068000",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "none",
-      "as_of": "2026-10-16T18:15:00+00:00",
+      "as_of": "2026-10-17T00:15:00+00:00",
       "retrain": {
         "site_id": "USGS-08068000",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "elevated",
@@ -543,7 +550,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -569,18 +576,18 @@
     "USGS-07143672": {
       "site_id": "USGS-07143672",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "none",
-      "as_of": "2026-10-16T18:15:00+00:00",
+      "as_of": "2026-10-17T00:15:00+00:00",
       "retrain": {
         "site_id": "USGS-07143672",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "moderate",
@@ -596,7 +603,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -622,18 +629,18 @@
     "USGS-03290500": {
       "site_id": "USGS-03290500",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "none",
-      "as_of": "2026-10-16T17:45:00+00:00",
+      "as_of": "2026-10-17T00:45:00+00:00",
       "retrain": {
         "site_id": "USGS-03290500",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "elevated",
@@ -649,7 +656,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -675,18 +682,18 @@
     "USGS-01184000": {
       "site_id": "USGS-01184000",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "none",
-      "as_of": "2026-10-16T18:00:00+00:00",
+      "as_of": "2026-10-17T00:00:00+00:00",
       "retrain": {
         "site_id": "USGS-01184000",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "stable",
@@ -702,7 +709,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
@@ -728,18 +735,18 @@
     "USGS-08211200": {
       "site_id": "USGS-08211200",
       "issued": 5,
-      "forecast_model": "gbm_weather",
-      "weather_status": "ok",
+      "forecast_model": "gbm",
+      "weather_status": "fetch_failed: ReadTimeout (HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=8.0))",
       "action": "none",
-      "as_of": "2026-10-16T18:00:00+00:00",
+      "as_of": "2026-10-17T00:00:00+00:00",
       "retrain": {
         "site_id": "USGS-08211200",
         "model_age_days": 4.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 25,
+        "logged_forecasts": 30,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 15
+        "scored_forecasts": 21
       },
       "input_drift": {
         "worst": "major",
@@ -755,7 +762,7 @@
       },
       "output_drift": {
         "window_days": 14,
-        "n_current": 25,
+        "n_current": 30,
         "n_reference": 0,
         "median_24h": {
           "psi": null,
