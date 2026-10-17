@@ -5,8 +5,7 @@ name: monitor
 # reports) lives on the `monitoring` branch, so the forward holdout accumulates without touching main.
 #
 # Secrets (optional but recommended): USGS_API_KEY (shared runner IPs hit the anonymous quota),
-# OPEN_METEO_API_KEY (the free weather endpoint throttles shared addresses; without it forecasts
-# fall back to the base model and the report says so).
+# OPEN_METEO_API_KEY is only needed if live weather is turned back on (DOSENTINEL_WEATHER below).
 on:
   schedule:
     - cron: "17 */6 * * *"
@@ -58,7 +57,11 @@ jobs:
         shell: bash  # -eo pipefail, so a failing run is not hidden by tee
         env:
           USGS_API_KEY: ${{ secrets.USGS_API_KEY }}
-          OPEN_METEO_API_KEY: ${{ secrets.OPEN_METEO_API_KEY }}
+          # Live weather is off: the free weather endpoint times out from shared runner addresses, which
+          # mixed weather-aware and weather-free forecasts in the forward holdout. Every forecast issued
+          # from here on is the weather-free model, so the holdout scores one consistent forecaster.
+          # Remove this line (and set OPEN_METEO_API_KEY) to turn weather back on.
+          DOSENTINEL_WEATHER: "off"
         run: |
           python scripts/run_monitoring.py --state ../state \
             ${{ inputs.fail_on_retrain && '--fail-on-retrain' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"
