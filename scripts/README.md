@@ -35,6 +35,7 @@ Install the package first (`pip install -e ".[dev,serve]"`); scripts marked *exp
 | `run_drift_peer.py` | Does a neighbouring sensor help detect drift? | `results/drift_peer_*.csv` |
 | `run_drift_cusum.py` | CUSUM / EWMA drift detection at a fixed false-alarm budget; minimum detectable drift | `results/drift_cusum_*.csv` |
 | `run_budget_fit.py` | Alert cutoffs fitted on year 1 to a budget, frozen, scored on year 2 | `results/budget_fit_*.csv` |
+| `run_holdout_eval.py` | Frozen pipeline on the pre-registered held-out sites; sites with too little history are excluded and listed | `results/holdout_*.csv` |
 | `estimate_holdout_time.py` | Episodes per month, and months until the forward holdout can speak | `results/forward_holdout_time.csv` |
 
 ## Product and reports

@@ -22,7 +22,8 @@ Sections: [1 Forecasting and alerts](#1-forecasting-calibration-alerts-and-trans
 [12 Input drift monitoring](#12-input-drift-monitoring) ·
 [13 Budget-matched alert cutoffs](#13-alert-cutoffs-fitted-on-the-first-year-and-frozen) ·
 [14 Minimum detectable drift](#14-slow-drift-change-detection-and-the-minimum-detectable-drift) ·
-[15 Forward-holdout timing and power](#15-how-long-until-the-forward-holdout-can-say-anything)
+[15 Forward-holdout timing and power](#15-how-long-until-the-forward-holdout-can-say-anything) ·
+[16 Held-out sites](#16-held-out-sites-the-frozen-pipeline-on-sites-that-played-no-part-in-any-decision)
 
 ## 1. Forecasting, calibration, alerts and transfer (14 sites, 5 years of history, 2-year walk-forward test)
 
@@ -393,3 +394,39 @@ counted once, as an alert cluster would cover them):
   should not be made. Forecast accuracy (MAE, interval coverage) accumulates much faster, at 4 issues per site per day.
 - Caveat: the monitoring job scores forecast error and coverage per forecast; it does not yet score alerts per
   episode, which is what this estimate is about.
+
+## 16. Held-out sites: the frozen pipeline on sites that played no part in any decision
+
+`scripts/run_holdout_eval.py`. Five sites were pre-registered in `config/holdout_sites.yaml` on 2026-10-15, before any of
+their data was pulled (tier A, three sites, for forecasts and alerts; tier B, two sites, for forecasts only). Nothing was
+tuned: features, hyper-parameters, calibration windows and decision rules are those of the 14 development sites, with the
+same 8 x 91-day walk-forward folds. Weather and Chronos-2 are not used (no weather archive for these sites), so the
+comparison is with the boosting alone, not the blend.
+
+- **One site was excluded, by a rule applied before any model ran:** USGS-03433500 (tier B) has 616 days of continuous DO
+  against the 1,275 the folds plus training need (`results/holdout_excluded.csv`). Four sites are reported: three tier A
+  and one tier B.
+- **Forecast skill against the best simple baseline is positive at all 4 sites and all 5 horizons**, and every 95%
+  interval excludes zero:
+
+| Horizon | 1 h | 3 h | 6 h | 12 h | 24 h |
+|---|---|---|---|---|---|
+| Range over the 4 sites | +5 to +27% | +12 to +27% | +16 to +28% | +13 to +23% | +5 to +8% |
+| Development sites (boosting with weather) | | | +24% | | +14% |
+
+  The shape matches the development sites (gain peaks at 3 to 12 h, shrinks by 24 h). The 24 h gain is smaller (+5 to 8%,
+  against +14%), which is expected without weather (weather added +8.6% at 24 h on the development sites).
+- **Conformal intervals transfer.** Raw 80% coverage was 69 to 83%; after calibration on the previous fold it was
+  **78 to 83%** (24 h: 77.5 to 81%), with no site below 77.5% at any horizon.
+- **Alerts do not give a clean answer, and should not be read as confirmation.** Cutoffs fitted on year 1 to 0.5 alerts
+  per site-week, frozen, scored on year 2:
+  - Reston (75 test episodes): the pooled and own classifiers anticipate 100% of episodes and the interval rule 93%, but
+    the classifier is alerting 31 to 34% of the time (`share_time_alerting`), so the budget in alert clusters hides an
+    alert that is mostly on. The one-line "naive" rule anticipates 0.
+  - San Antonio (13 episodes): anticipated recall is 0.62 pooled, 0.46 interval, **0.00 for the site's own classifier**.
+  - Ohio River (3 episodes): too few to say anything; the classifier anticipates none.
+  - So the finding from section 13 repeats: the rules differ by more than three tier-A sites can resolve, the budget is not
+    reliably held (0.08 to 1.22 alerts per week at test), and per-site alerting claims are not supported.
+- Caveats: four sites; 3 to 75 low-oxygen episodes per site; the held-out sites were pre-registered, but the rule chosen
+  to score them (budget-fit, from section 13) was developed on the development sites' second year, which is not an
+  independent forward test. The forward holdout (section 15) remains the only fully untouched evaluation.

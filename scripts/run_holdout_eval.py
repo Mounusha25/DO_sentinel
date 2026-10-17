@@ -120,6 +120,20 @@ def main() -> None:
     args = ap.parse_args()
 
     sites = yaml.safe_load(Path(args.config).read_text())["sites"]
+    # a site needs room for the test folds plus a real training history; this is a data-availability rule,
+    # applied before any model runs, and every exclusion is written down
+    need_days = args.folds * 91 + int(1.5 * 365)
+    kept, excluded = [], []
+    for s in sites:
+        v = load_site_frame(s["id"], args.clean)["do"].dropna()
+        span = (v.index.max() - v.index.min()).days if len(v) else 0
+        (kept if span >= need_days else excluded).append({**s, "do_span_days": span})
+    if excluded:
+        pd.DataFrame([{"site": s["id"], "tier": s.get("tier"), "do_span_days": s["do_span_days"], "needed_days": need_days,
+                       "reason": "continuous DO record too short for the walk-forward test plus training"}
+                      for s in excluded]).to_csv(Path(args.out) / "holdout_excluded.csv", index=False)
+        print("excluded for too little DO history:", [(s["id"], s["do_span_days"]) for s in excluded], flush=True)
+    sites = kept
     dev = [s["id"] for s in yaml.safe_load(Path(args.dev_config).read_text())["sites"]]
     out = Path(args.out)
     skill, cov = [], []

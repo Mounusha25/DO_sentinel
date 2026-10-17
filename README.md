@@ -97,7 +97,7 @@ Deployment, the live-request behaviour (weather fetch, fallbacks, optional API k
 
 ## Limitations
 
-- **One evaluation period.** The final year was reused across experiments; only the forward holdout is untouched, and it has not accumulated yet.
+- **One evaluation period.** The final year was reused across experiments; only the forward holdout is untouched, and it has not accumulated yet. Four pre-registered held-out sites (frozen pipeline, nothing tuned) confirm the forecasts and interval coverage but give no clear answer on alerts (three or fewer sites, 3 to 75 episodes each); see [results section 16](reports/RESULTS.md#16-held-out-sites-the-frozen-pipeline-on-sites-that-played-no-part-in-any-decision).
 - **Faults are synthetic.** No real labelled sensor faults exist in the data, and the injected shapes are simple.
 - **Selection.** Sites were filtered on last-year data quality, which may favour well-instrumented ones; low-oxygen episodes are rare at some sites (as few as 7 in two years).
 - **Provisional data is revised** by USGS after the fact, and the model forecasts from what is available now.

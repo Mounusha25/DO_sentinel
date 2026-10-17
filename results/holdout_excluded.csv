@@ -1,0 +1,2 @@
+site,tier,do_span_days,needed_days,reason
+USGS-03433500,B,616,1275,continuous DO record too short for the walk-forward test plus training

@@ -155,6 +155,9 @@ def evaluate_period(v: pd.Series, thr: float, org: pd.DatetimeIndex, flag: np.nd
     a = alerts_array(len(tl), pos[ok], flag[ok])
     r = evaluate_alerts(episodes, a, horizon_steps=H, cooldown=cooldown, costs=costs, not_low=not_low)
     r["alerts_per_week_24h_cooldown"] = len(alert_clusters(a, 96)) / (len(tl) / STEP_WEEK)
+    # alerts per week counts clusters, so an alert that never switches off counts once; this is the share
+    # of origins at which the rule is alerting, which a budget has to bound as well
+    r["share_time_alerting"] = float(np.mean(flag[ok])) if ok.any() else 0.0
     r["episodes"] = len(episodes)
     return r
 

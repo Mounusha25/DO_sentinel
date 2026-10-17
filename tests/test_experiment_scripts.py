@@ -128,3 +128,7 @@ def test_evaluate_period_reports_the_cooldown_sensitivity(bf):
     r = bf.evaluate_period(v, 5.0, org, flag, Costs(10, 1))
     assert r["alerts_per_week"] > 0 and r["alerts_per_week_24h_cooldown"] <= r["alerts_per_week"]
     assert r["episodes"] == 0
+    assert r["share_time_alerting"] == pytest.approx(flag.mean())
+    # an alert that is always on is one cluster, and the share of time shows it
+    always = bf.evaluate_period(v, 5.0, org, np.ones(len(org), bool), Costs(10, 1))
+    assert always["share_time_alerting"] == 1.0 and always["clusters"] == 1
