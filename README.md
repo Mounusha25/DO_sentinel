@@ -23,6 +23,8 @@ Fourteen sites in 11 states, five years of 15-minute data, one year of out-of-sa
 | Can sensor faults be detected? | Injected spikes 84%, stuck near zero 99%, offsets 65%, flatlines 59%. Slow drift: no. |
 | Is the boosting more than a linear model? | Yes, by 4 to 11% MAE at 11 to 13 of 14 sites. |
 
+**Live serving note:** the weather-aware and blend results above are walk-forward evaluations. The deployed API and the monitoring job currently run the weather-free model (live weather is off since 2026-10-17 because the free weather endpoint timed out; see [OPERATIONS.md](OPERATIONS.md)). Four pre-registered held-out sites confirm the forecasts and interval coverage; see [results section 16](reports/RESULTS.md#16-held-out-sites-the-frozen-pipeline-on-sites-that-played-no-part-in-any-decision).
+
 ## What did not work
 
 - **Slow sensor drift** is detectable only when it is large: a drift reaching about 3 mg/L over two weeks is caught 70 to 90% of the time at one false alarm per 5 to 20 weeks, and anything under 1 mg/L is not detectable from one sensor. A neighbouring sensor within 70 km did not help. An early 28% detection rate was chance.
@@ -54,7 +56,7 @@ Evaluation is chronological and walk-forward; preprocessing, thresholds and cali
 ```
 src/dosentinel/    library: ingest, validate, features, models, calibration, decision, faults, serving, api
 scripts/           runnable pipelines and experiments (see scripts/README.md)
-tests/             160 tests, including leakage tests for every forecaster and feature set
+tests/             163 tests, including leakage tests for every forecaster and feature set
 dashboard/         template, precomputed replay data and US map for the dashboard
 docs/              built dashboard and case study (served by GitHub Pages)
 config/            sites.yaml: the 14 sites, their selection rationale and exclusions
@@ -69,7 +71,7 @@ PROBLEM.md  MODEL_CARD.md  OPERATIONS.md  render.yaml  Dockerfile  requirements-
 
 ```bash
 pip install -e ".[dev,serve]"              # Python 3.11 or newer
-pytest                                     # 160 tests
+pytest                                     # 163 tests
 ruff check src scripts tests               # lint
 
 python scripts/build_dashboard.py          # rebuild docs/index.html from dashboard/
@@ -93,7 +95,7 @@ Experiment scripts and what each produces are indexed in [scripts/README.md](scr
 
 ## Operating it
 
-Deployment, the live-request behaviour (weather fetch, fallbacks, optional API keys and rate limit), monitoring and the retrain rule are in [OPERATIONS.md](OPERATIONS.md).
+Deployment, the live-request behaviour (weather switch, fetch, fallbacks, optional API keys and rate limit), monitoring and the retrain rule are in [OPERATIONS.md](OPERATIONS.md).
 
 ## Limitations
 

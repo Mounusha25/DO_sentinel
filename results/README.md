@@ -19,6 +19,7 @@ The narrative, with confidence intervals and caveats, is in [`reports/RESULTS.md
 | `drift_peer_*` | `run_drift_peer.py` | Drift detection with a neighbouring sensor (`_null` is the chance control) |
 | `drift_cusum_*` | `run_drift_cusum.py` | Event-level detection, detection-versus-magnitude curve with chance, and minimum detectable drift |
 | `budget_fit_*` | `run_budget_fit.py` | Cutoffs fitted on year 1, frozen, and out-of-sample results and paired differences |
+| `holdout_*` | `run_holdout_eval.py` | Frozen pipeline on the pre-registered held-out sites: skill, interval coverage, budget-fit alerts, and sites excluded for too little history |
 | `forward_holdout_time` | `estimate_holdout_time.py` | Low-DO episodes per site-year and months of holdout needed |
 
 Three large tables are **not in git** because of their size; regenerate them with the scripts named in

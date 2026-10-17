@@ -76,6 +76,9 @@ The forward holdout above starts from the models frozen on 2026-10-13. Since the
 * The weather model and the blend have **no untouched evaluation of their own**: their forward holdout
   starts on 2026-10-15. Their evidence so far is the walk-forward results in RESULTS.md sections 8-9,
   on a year that earlier experiments reused.
+* Live weather was switched off on 2026-10-17 (the free Open-Meteo endpoint timed out from shared hosts).
+  From then on the forward holdout scores the weather-free base model (`gbm`); the five earlier cycles
+  (2026-10-16) are `gbm_weather` and are reported separately.
 * The alert rule for a site with no trained classifier (USGS-01184000) now reads the forecast interval
   instead of a constant probability. That changes this one site's alerts; the rule itself was
   designed after seeing walk-forward curves (its cutoff is the cost-derived one, not tuned).

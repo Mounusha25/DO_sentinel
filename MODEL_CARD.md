@@ -9,9 +9,12 @@
   the blend); rule-based and forecast-error fault flags. Where a site has no trained classifier,
   the alert reads the forecast interval instead.
 * **Inputs:** the site's own 15-minute DO, water temperature, specific conductance, turbidity
-  and discharge; calendar terms; weather (rainfall that has fallen, forecast air temperature,
-  sunlight and rainfall for the next 6-24 h) fetched live from Open-Meteo. Without weather the
-  service falls back to the base model and says so (`forecast_model`).
+  and discharge; calendar terms. The weather models also take weather (rainfall that has fallen,
+  forecast air temperature, sunlight and rainfall for the next 6-24 h) from Open-Meteo archives.
+  **Live serving and monitoring currently run without weather** (`DOSENTINEL_WEATHER=off`, since
+  2026-10-17): the free Open-Meteo endpoint timed out from shared hosts, so live forecasts come from
+  the weather-free base model and say so (`forecast_model: gbm`, `weather_status: disabled`).
+  The weather-aware and blend numbers below are walk-forward results, not what the live service serves.
 * **Trained on:** USGS continuous water-quality data, 14 sites (basins 3 to 16,600 sq mi, 11 US
   states), five years to October 2026. One model per site and horizon.
 * **Version/date:** 0.1.0, 2026-10-13. Trained through 2025-10-12, calibrated on the year after.
@@ -43,6 +46,12 @@ success criteria.
   +31.3% at 6 h (folds 2-4, 14 of 14 sites better than the baseline at every horizon).
 * 80% intervals: coverage 0.78-0.79 after conformal calibration (raw 0.71-0.76); the blend, with
   walk-forward calibration, 0.805-0.812.
+* **Held-out sites** (4 sites pre-registered before any of their data was pulled, a fifth excluded for
+  too little history; frozen pipeline, no weather, no blend): skill is positive at every site and horizon
+  (about +16 to 28% at 6 h, +5 to 8% at 24 h) and calibrated coverage is 78-83%. Alerts there are
+  inconclusive (3 tier-A sites, 3 to 75 episodes each). RESULTS.md section 16.
+* **Forward holdout** (live, `monitoring` branch): started 2026-10-16. The first five cycles used weather
+  (`gbm_weather`); later cycles are weather-free (`gbm`) and are reported separately, never pooled.
 * Low-DO probability beats a "current state only" forecaster at about 80% of sites up to 6 h
   (median Brier skill 0.24-0.29); not at 24 h.
 * Alerts: at a 10:1 miss:false-alarm cost, forecast-based rules cost 0.9-1.1 per site-week against
@@ -70,7 +79,9 @@ models. Slow sensor drift stays undetectable from one sensor, and a neighbouring
   per-site alert metrics are noisy.
 * **A site with no training events has no usable probability model.** At USGS-01184000 (3% event rate) the low-DO classifier saw no events in training and is a constant, so its probability does not respond to conditions; the alert reads the forecast interval there (`alert_rule: forecast_interval`).
 * **Blend margins depend on cached forecasts.** They are fitted on the calibration year's Chronos-2 forecasts (`run_chronos2.py`); after a retrain without those, the bundle serves the weather boosting only.
-* **Weather at serving time is the latest forecast,** fresher than the day-old forecast used in training. A bad or missing weather response degrades to the base model.
+* **Live weather is off.** If it is turned back on, the weather at serving time is the latest forecast,
+  fresher than the day-old forecast used in training, and a bad or missing response degrades to the base
+  model. Replacing Open-Meteo with NWS was assessed and rejected: it has no past rainfall and no shortwave radiation.
 * **Seasonal.** Event rates differ by season; probability scaling needs a year of calibration data.
 
 ## Ethical and operational considerations

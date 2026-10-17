@@ -252,7 +252,7 @@ footer a{color:var(--ink-2)}
   <footer>
     Data: USGS continuous water-quality observations (public); weather experiments use Open-Meteo. Replay shows real model output for the last 30 days
     of data; models were trained on data before <span id="f-train"></span> and their interval and probability calibration used the following year, which
-    includes this replay window. Live mode asks the deployed API for current USGS readings; the free server sleeps when idle, so the first load can take a minute. Forecasts support a human decision and are not a compliance tool. Slow sensor drift is not detected.
+    includes this replay window. Live mode asks the deployed API for current USGS readings and answers from the weather-free boosting model (live weather is switched off, so live numbers are not the weather-aware replay numbers); the free server sleeps when idle, so the first load can take a minute. Forecasts support a human decision and are not a compliance tool. Slow sensor drift is not detected.
     <a href="https://github.com/Mounusha25/DO_sentinel" target="_blank" rel="noopener">Source, model card and methods on GitHub</a>.
   </footer>
 </div>
@@ -298,6 +298,7 @@ function modelLabel(r){
   if(st.mode!=="live") return {t:"Boosting with weather (archived forecast)", note:""};
   const name = MODEL_NAME[r.model] || "Boosting";
   const why = r.model==="gbm" && r.wstatus && r.wstatus!=="ok" ? r.wstatus : "";
+  if(why==="disabled") return {t:name, note:"live weather is switched off"};
   const code = /HTTP \d+/.exec(why);
   return {t:name, note:why ? "weather unavailable: "+(code ? code[0] : why.slice(0,40)) : ""};
 }
