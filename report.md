@@ -1,19 +1,19 @@
-# Monitoring report, 2026-10-21T01:01:27+00:00
+# Monitoring report, 2026-10-21T06:47:33+00:00
 
 * Sites checked: 14 (failed: none)
 * Retrain recommended: none
 * Input drift alerts (two or more inputs far outside their normal year-to-year range): none
-* Matured forecasts scored so far (forward holdout): 1414
+* Matured forecasts scored so far (forward holdout): 1481
 
 ## Forward holdout
 
 | Forecaster | Horizon | n | MAE (mg/L) | 80% coverage |
 |---|---|---|---|---|
-| gbm | 1 h | 182 | 0.075 | 0.84 |
-| gbm | 3 h | 182 | 0.159 | 0.82 |
-| gbm | 6 h | 182 | 0.235 | 0.84 |
-| gbm | 12 h | 168 | 0.319 | 0.85 |
-| gbm | 24 h | 140 | 0.353 | 0.85 |
+| gbm | 1 h | 196 | 0.075 | 0.85 |
+| gbm | 3 h | 196 | 0.157 | 0.84 |
+| gbm | 6 h | 193 | 0.234 | 0.84 |
+| gbm | 12 h | 182 | 0.310 | 0.85 |
+| gbm | 24 h | 154 | 0.344 | 0.86 |
 | gbm_weather | 1 h | 112 | 0.104 | 0.80 |
 | gbm_weather | 3 h | 112 | 0.196 | 0.84 |
 | gbm_weather | 6 h | 112 | 0.315 | 0.82 |
