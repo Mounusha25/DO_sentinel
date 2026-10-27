@@ -1,19 +1,19 @@
-# Monitoring report, 2026-10-26T18:46:42+00:00
+# Monitoring report, 2026-10-27T01:04:04+00:00
 
 * Sites checked: 14 (failed: none)
 * Retrain recommended: none
 * Input drift alerts (two or more inputs far outside their normal year-to-year range): none
-* Matured forecasts scored so far (forward holdout): 3006
+* Matured forecasts scored so far (forward holdout): 3079
 
 ## Forward holdout
 
 | Forecaster | Horizon | n | MAE (mg/L) | 80% coverage |
 |---|---|---|---|---|
-| gbm | 1 h | 504 | 0.093 | 0.81 |
-| gbm | 3 h | 503 | 0.167 | 0.82 |
-| gbm | 6 h | 490 | 0.223 | 0.86 |
-| gbm | 12 h | 487 | 0.295 | 0.87 |
-| gbm | 24 h | 462 | 0.302 | 0.90 |
+| gbm | 1 h | 518 | 0.093 | 0.81 |
+| gbm | 3 h | 517 | 0.167 | 0.82 |
+| gbm | 6 h | 518 | 0.227 | 0.85 |
+| gbm | 12 h | 490 | 0.296 | 0.87 |
+| gbm | 24 h | 476 | 0.304 | 0.90 |
 | gbm_weather | 1 h | 112 | 0.104 | 0.80 |
 | gbm_weather | 3 h | 112 | 0.196 | 0.84 |
 | gbm_weather | 6 h | 112 | 0.315 | 0.82 |
@@ -28,7 +28,7 @@
 | USGS-01654500 | gbm | disabled | none | moderate | unknown | no |
 | USGS-02110400 | gbm | disabled | none | stable | unknown | no |
 | USGS-02110704 | gbm | disabled | warning | major (1 major) | unknown | no |
-| USGS-02336313 | gbm | disabled | warning | stable | unknown | no |
+| USGS-02336313 | gbm | disabled | none | stable | unknown | no |
 | USGS-02344630 | gbm | disabled | none | stable | unknown | no |
 | USGS-03290500 | gbm | disabled | none | stable | unknown | no |
 | USGS-03293500 | gbm | disabled | none | stable | unknown | no |
@@ -36,5 +36,5 @@
 | USGS-07143672 | gbm | disabled | none | moderate | unknown | no |
 | USGS-08065350 | gbm | disabled | none | stable | unknown | no |
 | USGS-08068000 | gbm | disabled | none | stable | unknown | no |
-| USGS-08211200 | gbm | disabled | none | major (1 major) | unknown | no |
+| USGS-08211200 | gbm | disabled | none | elevated | unknown | no |
 | USGS-10133650 | gbm | disabled | none | stable | unknown | no |
