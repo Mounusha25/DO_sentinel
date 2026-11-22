@@ -1,19 +1,19 @@
-# Monitoring report, 2026-11-21T18:24:15+00:00
+# Monitoring report, 2026-11-22T00:45:05+00:00
 
 * Sites checked: 14 (failed: none)
 * Retrain recommended: USGS-02110400, USGS-02344630, USGS-08065350
 * Input drift alerts (two or more inputs far outside their normal year-to-year range): USGS-08068000
-* Matured forecasts scored so far (forward holdout): 10199
+* Matured forecasts scored so far (forward holdout): 10269
 
 ## Forward holdout
 
 | Forecaster | Horizon | n | MAE (mg/L) | 80% coverage |
 |---|---|---|---|---|
-| gbm | 1 h | 1937 | 0.103 | 0.80 |
-| gbm | 3 h | 1940 | 0.178 | 0.80 |
-| gbm | 6 h | 1942 | 0.252 | 0.82 |
-| gbm | 12 h | 1924 | 0.308 | 0.85 |
-| gbm | 24 h | 1896 | 0.348 | 0.88 |
+| gbm | 1 h | 1951 | 0.103 | 0.80 |
+| gbm | 3 h | 1954 | 0.178 | 0.80 |
+| gbm | 6 h | 1956 | 0.251 | 0.82 |
+| gbm | 12 h | 1938 | 0.307 | 0.85 |
+| gbm | 24 h | 1910 | 0.348 | 0.88 |
 | gbm_weather | 1 h | 112 | 0.104 | 0.80 |
 | gbm_weather | 3 h | 112 | 0.196 | 0.84 |
 | gbm_weather | 6 h | 112 | 0.315 | 0.82 |
@@ -26,15 +26,15 @@
 |---|---|---|---|---|---|---|
 | USGS-01184000 | gbm | disabled | none | major (1 major) | major | no |
 | USGS-01654500 | gbm | disabled | none | elevated | major | no |
-| USGS-02110400 | gbm | disabled | none | stable | major | yes: MAE at 1 h (gbm) is 1.35x its evaluation level |
+| USGS-02110400 | gbm | disabled | none | stable | major | yes: MAE at 1 h (gbm) is 1.34x its evaluation level |
 | USGS-02110704 | gbm | disabled | none | major (1 major) | major | no |
 | USGS-02336313 | gbm | disabled | none | stable | major | no |
-| USGS-02344630 | gbm | disabled | none | stable | major | yes: MAE at 1 h (gbm) is 3.76x its evaluation level; MAE at 3 h (gbm) is 2.00x its evaluation level; MAE at 6 h (gbm) is 1.41x its evaluation level; interval coverage (gbm) 0.62 below 0.65 |
+| USGS-02344630 | gbm | disabled | none | stable | major | yes: MAE at 1 h (gbm) is 3.73x its evaluation level; MAE at 3 h (gbm) is 1.99x its evaluation level; MAE at 6 h (gbm) is 1.41x its evaluation level; interval coverage (gbm) 0.62 below 0.65 |
 | USGS-03290500 | gbm | disabled | none | elevated | major | no |
 | USGS-03293500 | gbm | disabled | none | elevated | major | no |
 | USGS-05576195 | gbm | disabled | warning | elevated | major | no |
 | USGS-07143672 | gbm | disabled | none | elevated | major | no |
-| USGS-08065350 | gbm | disabled | none | elevated | major | yes: MAE at 1 h (gbm) is 5.76x its evaluation level; MAE at 3 h (gbm) is 3.99x its evaluation level; MAE at 6 h (gbm) is 2.82x its evaluation level; MAE at 12 h (gbm) is 2.16x its evaluation level; MAE at 24 h (gbm) is 1.98x its evaluation level; interval coverage (gbm) 0.35 below 0.65 |
+| USGS-08065350 | gbm | disabled | none | elevated | major | yes: MAE at 1 h (gbm) is 5.73x its evaluation level; MAE at 3 h (gbm) is 3.97x its evaluation level; MAE at 6 h (gbm) is 2.81x its evaluation level; MAE at 12 h (gbm) is 2.15x its evaluation level; MAE at 24 h (gbm) is 1.97x its evaluation level; interval coverage (gbm) 0.35 below 0.65 |
 | USGS-08068000 | gbm | disabled | none | major (2 major) | major | no |
 | USGS-08211200 | gbm | disabled | none | major (1 major) | major | no |
 | USGS-10133650 | gbm | disabled | none | major (1 major) | major | no |
