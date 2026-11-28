@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-28T00:41:22+00:00",
+  "generated": "2026-11-28T06:32:13+00:00",
   "sites_checked": 14,
   "sites_failed": [],
   "retrain_recommended": [
@@ -13,37 +13,37 @@
     {
       "forecast_model": "gbm",
       "horizon_h": 1,
-      "n": 2286,
-      "mae": 0.1023,
-      "coverage": 0.7962
+      "n": 2299,
+      "mae": 0.1019,
+      "coverage": 0.7969
     },
     {
       "forecast_model": "gbm",
       "horizon_h": 3,
-      "n": 2289,
-      "mae": 0.1795,
-      "coverage": 0.7973
+      "n": 2302,
+      "mae": 0.1792,
+      "coverage": 0.7971
     },
     {
       "forecast_model": "gbm",
       "horizon_h": 6,
-      "n": 2291,
-      "mae": 0.2586,
+      "n": 2302,
+      "mae": 0.2582,
       "coverage": 0.8119
     },
     {
       "forecast_model": "gbm",
       "horizon_h": 12,
-      "n": 2273,
-      "mae": 0.3188,
-      "coverage": 0.8368
+      "n": 2286,
+      "mae": 0.3181,
+      "coverage": 0.8373
     },
     {
       "forecast_model": "gbm",
       "horizon_h": 24,
-      "n": 2245,
-      "mae": 0.3694,
-      "coverage": 0.8579
+      "n": 2256,
+      "mae": 0.369,
+      "coverage": 0.8573
     },
     {
       "forecast_model": "gbm_weather",
@@ -81,7 +81,7 @@
       "coverage": 0.6964
     }
   ],
-  "forward_holdout_rows": 11944,
+  "forward_holdout_rows": 12005,
   "sites": {
     "USGS-03293500": {
       "site_id": "USGS-03293500",
@@ -89,15 +89,15 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-28T00:15:00+00:00",
+      "as_of": "2026-11-28T05:15:00+00:00",
       "retrain": {
         "site_id": "USGS-03293500",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 799
+        "scored_forecasts": 797
       },
       "input_drift": {
         "worst": "stable",
@@ -114,13 +114,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 5.3283,
+          "psi": 5.8929,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 5.1588,
+          "psi": 5.0115,
           "status": "major"
         },
         "status": "major"
@@ -142,20 +142,20 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-28T00:00:00+00:00",
+      "as_of": "2026-11-28T06:00:00+00:00",
       "retrain": {
         "site_id": "USGS-02344630",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.005952380952380931,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": true,
         "reasons": [
-          "MAE at 1 h is 6.29x its evaluation level",
-          "MAE at 3 h is 2.96x its evaluation level",
-          "MAE at 6 h is 1.88x its evaluation level",
-          "MAE at 12 h is 1.50x its evaluation level",
-          "MAE at 24 h is 1.27x its evaluation level",
-          "interval coverage 0.36 below 0.65"
+          "MAE at 1 h is 6.22x its evaluation level",
+          "MAE at 3 h is 2.93x its evaluation level",
+          "MAE at 6 h is 1.86x its evaluation level",
+          "MAE at 12 h is 1.48x its evaluation level",
+          "MAE at 24 h is 1.26x its evaluation level",
+          "interval coverage 0.37 below 0.65"
         ],
         "scored_forecasts": 796
       },
@@ -174,9 +174,9 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 6.7863,
+          "psi": 6.1856,
           "status": "major"
         },
         "p_low_do": {
@@ -202,19 +202,19 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-27T23:45:00+00:00",
+      "as_of": "2026-11-28T05:45:00+00:00",
       "retrain": {
         "site_id": "USGS-08065350",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": true,
         "reasons": [
-          "MAE at 1 h is 5.01x its evaluation level",
-          "MAE at 3 h is 3.50x its evaluation level",
-          "MAE at 6 h is 2.50x its evaluation level",
-          "MAE at 12 h is 1.88x its evaluation level",
-          "MAE at 24 h is 1.74x its evaluation level",
+          "MAE at 1 h is 4.99x its evaluation level",
+          "MAE at 3 h is 3.47x its evaluation level",
+          "MAE at 6 h is 2.49x its evaluation level",
+          "MAE at 12 h is 1.87x its evaluation level",
+          "MAE at 24 h is 1.72x its evaluation level",
           "interval coverage 0.44 below 0.65"
         ],
         "scored_forecasts": 800
@@ -234,13 +234,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 3.4702,
+          "psi": 3.3227,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 5.1187,
+          "psi": 5.1948,
           "status": "major"
         },
         "status": "major"
@@ -262,12 +262,12 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-27T23:30:00+00:00",
+      "as_of": "2026-11-28T05:30:00+00:00",
       "retrain": {
         "site_id": "USGS-02336313",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0014880952380952328,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
         "scored_forecasts": 800
@@ -287,13 +287,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 2.407,
+          "psi": 2.8654,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 3.6221,
+          "psi": 3.6817,
           "status": "major"
         },
         "status": "major"
@@ -315,12 +315,12 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-28T00:15:00+00:00",
+      "as_of": "2026-11-28T06:15:00+00:00",
       "retrain": {
         "site_id": "USGS-02110400",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
         "scored_forecasts": 798
@@ -340,13 +340,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 0.4513,
+          "psi": 0.2784,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 1.6433,
+          "psi": 2.2089,
           "status": "major"
         },
         "status": "major"
@@ -368,12 +368,12 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-27T23:30:00+00:00",
+      "as_of": "2026-11-28T05:30:00+00:00",
       "retrain": {
         "site_id": "USGS-10133650",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
         "scored_forecasts": 801
@@ -393,9 +393,9 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 2.688,
+          "psi": 2.723,
           "status": "major"
         },
         "p_low_do": {
@@ -421,12 +421,12 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-27T23:45:00+00:00",
+      "as_of": "2026-11-28T05:45:00+00:00",
       "retrain": {
         "site_id": "USGS-01654500",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0014880952380952328,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
         "scored_forecasts": 619
@@ -446,13 +446,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 5.2402,
+          "psi": 5.3859,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 1.5938,
+          "psi": 1.5453,
           "status": "major"
         },
         "status": "major"
@@ -474,17 +474,17 @@
       "forecast_model": null,
       "weather_status": "disabled",
       "action": "maintenance",
-      "as_of": "2026-11-28T00:00:00+00:00",
+      "as_of": "2026-11-28T05:30:00+00:00",
       "retrain": {
         "site_id": "USGS-05576195",
-        "model_age_days": 46.0,
-        "missing_do_7d": 0.45833333333333337,
+        "model_age_days": 47.0,
+        "missing_do_7d": 0.4910714285714286,
         "logged_forecasts": 865,
         "retrain": true,
         "reasons": [
-          "46% of DO missing over the last 7 days"
+          "49% of DO missing over the last 7 days"
         ],
-        "scored_forecasts": 735
+        "scored_forecasts": 730
       },
       "input_drift": {
         "worst": "elevated",
@@ -513,7 +513,7 @@
         "status": "major"
       },
       "input_health": {
-        "do_observed_7d": 0.5416666666666666
+        "do_observed_7d": 0.5089285714285714
       },
       "reference_mae": {
         "1": 0.24569831101407316,
@@ -529,12 +529,12 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-28T00:15:00+00:00",
+      "as_of": "2026-11-28T06:15:00+00:00",
       "retrain": {
         "site_id": "USGS-02110704",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
         "scored_forecasts": 800
@@ -554,13 +554,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 8.1866,
+          "psi": 8.1522,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 8.4059,
+          "psi": 8.4149,
           "status": "major"
         },
         "status": "major"
@@ -582,15 +582,15 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-28T00:15:00+00:00",
+      "as_of": "2026-11-28T05:15:00+00:00",
       "retrain": {
         "site_id": "USGS-08068000",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
-        "scored_forecasts": 798
+        "scored_forecasts": 796
       },
       "input_drift": {
         "worst": "major",
@@ -607,13 +607,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 3.0136,
+          "psi": 3.0189,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 5.1868,
+          "psi": 5.145,
           "status": "major"
         },
         "status": "major"
@@ -635,12 +635,12 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-28T00:15:00+00:00",
+      "as_of": "2026-11-28T06:15:00+00:00",
       "retrain": {
         "site_id": "USGS-07143672",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
         "scored_forecasts": 798
@@ -660,13 +660,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 5.1493,
+          "psi": 4.6627,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 4.5441,
+          "psi": 4.4594,
           "status": "major"
         },
         "status": "major"
@@ -688,12 +688,12 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-27T23:45:00+00:00",
+      "as_of": "2026-11-28T05:45:00+00:00",
       "retrain": {
         "site_id": "USGS-03290500",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
         "scored_forecasts": 801
@@ -713,13 +713,13 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 6.3836,
+          "psi": 7.3729,
           "status": "major"
         },
         "p_low_do": {
-          "psi": 4.6562,
+          "psi": 4.7664,
           "status": "major"
         },
         "status": "major"
@@ -741,17 +741,17 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-28T00:00:00+00:00",
+      "as_of": "2026-11-28T06:00:00+00:00",
       "retrain": {
         "site_id": "USGS-01184000",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.01041666666666663,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": true,
         "reasons": [
           "MAE at 3 h is 1.25x its evaluation level"
         ],
-        "scored_forecasts": 800
+        "scored_forecasts": 801
       },
       "input_drift": {
         "worst": "elevated",
@@ -768,9 +768,9 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 5.7117,
+          "psi": 6.1856,
           "status": "major"
         },
         "p_low_do": {
@@ -796,12 +796,12 @@
       "forecast_model": "gbm",
       "weather_status": "disabled",
       "action": "none",
-      "as_of": "2026-11-28T00:00:00+00:00",
+      "as_of": "2026-11-28T06:00:00+00:00",
       "retrain": {
         "site_id": "USGS-08211200",
-        "model_age_days": 46.0,
+        "model_age_days": 47.0,
         "missing_do_7d": 0.0,
-        "logged_forecasts": 870,
+        "logged_forecasts": 875,
         "retrain": false,
         "reasons": [],
         "scored_forecasts": 800
@@ -821,9 +821,9 @@
       "output_drift": {
         "window_days": 14,
         "n_current": 280,
-        "n_reference": 285,
+        "n_reference": 280,
         "median_24h": {
-          "psi": 5.2437,
+          "psi": 4.9504,
           "status": "major"
         },
         "p_low_do": {
